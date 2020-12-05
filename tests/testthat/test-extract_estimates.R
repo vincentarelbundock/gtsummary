@@ -19,11 +19,3 @@ test_that("bad statistic name throws error", {
                  statistic_override = vcov)
   )
 })
-
-test_that("horizontal statistics", {
-  mod <- lm(am ~ drat, data = mtcars)
-  raw <- modelsummary:::extract_estimates(
-    mod,
-    statistic_vertical = FALSE)
-  expect_equal(dim(raw), c(2, 3))
-})

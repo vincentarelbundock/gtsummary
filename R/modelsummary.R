@@ -46,8 +46,6 @@ extract_models <- function(...) {
 #'   \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
 #'   \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
 #' }
-#' @param statistic_vertical TRUE if statistics should be printed below
-#' estimates. FALSE if statistics should be printed beside estimates.
 #' @param conf_level confidence level to use for confidence intervals
 #' @param coef_map named character vector. Values refer to the variable names
 #' that will appear in the table. Names refer to the original term names stored
@@ -81,6 +79,7 @@ extract_models <- function(...) {
 #' @param ... all other arguments are passed to the `tidy` and `glance` methods
 #' used to extract estimates from the model. For example, this allows users to
 #' set `exponentiate=TRUE` to exponentiate logistic regression coefficients.
+#' @param statistic_vertical deprecated argument
 #' @return a regression table in a format determined by the `output` argument.
 #' @importFrom broom glance tidy
 #' @examples
@@ -159,7 +158,7 @@ modelsummary <- function(models,
 
   # sanity check functions are hosted in R/sanity_checks.R
   sanity_output(output)
-  sanity_statistic(statistic, statistic_override, statistic_vertical, models)
+  # sanity_statistic(statistic, statistic_override, statistic_vertical, models)
   sanity_conf_level(conf_level)
   sanity_coef_map(coef_map)
   sanity_coef_omit(coef_omit)

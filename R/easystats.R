@@ -37,7 +37,7 @@ tidy_easystats <- function(model, ...) {
   if (!check_dependency("parameters")) {
     return(NULL)
   }
-  out <- parameters::model_parameters(model, ...)
+  msg <- utils::capture.output(out <- parameters::model_parameters(model, ...))
   out <- parameters::standardize_names(out, style="broom")
   return(out)
 }

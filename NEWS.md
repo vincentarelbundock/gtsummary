@@ -1,5 +1,6 @@
 # modelsummary 0.6.3.9000
 
+* glue format + deprecate statistic_vertical
 * support for easystats packages for model info extraction: performance, parameters
 * modelplot pushes ... through to extract_models
 * datasummary_skim(type="dataset")

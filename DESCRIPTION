@@ -22,6 +22,7 @@ Imports:
     broom,
     checkmate,
     generics,
+    glue,
     kableExtra (>= 1.2.1),
     parameters,
     performance,

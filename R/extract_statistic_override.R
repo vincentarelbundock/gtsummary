@@ -44,7 +44,6 @@ extract_statistic_override <- function(model, statistic_override, conf_level=NUL
   if (is.matrix(out)) {
     out <- sqrt(base::diag(out))
     out <- data.frame(term=names(out), std.error=out)
-    return(out)
   } 
 
   # atomic vector
@@ -52,8 +51,16 @@ extract_statistic_override <- function(model, statistic_override, conf_level=NUL
   if (isTRUE(flag)) {
     out <- data.frame(term=names(out), 
                       std.error=out)
-    return(out)
   }
+
+  # factor -> character (important for R<4.0.0)
+  for (i in seq_along(out)) {
+    if (is.factor(out[[i]])) {
+      out[[i]] <- as.character(out[[i]])
+    }
+  }
+  
+  return(out)
 
   stop("Could not retrieve a valid variance-covariance matrix using the function supplied in `statistic_override`.")
 

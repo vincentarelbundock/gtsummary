@@ -13,40 +13,57 @@ extract_estimates <- function(model,
                               estimate = 'estimate',
                               ...) {
 
+  # convert estimate/statistic to glue format
+  estimate_glue <- ifelse(
+    grepl("\\{", estimate),
+    estimate, 
+    sprintf("{%s}", estimate))
+
+  if (is.null(statistic)) {
+    statistic_glue <- estimate_glue
+  } else {
+    statistic_glue <- ifelse(
+      statistic == "conf.int",
+      "[{conf.low}, {conf.high}]",
+      statistic)
+    if (is.null(statistic_override) || !is.character(statistic_override)) {
+      statistic_glue <- ifelse(
+        grepl("\\{", statistic_glue),
+        statistic_glue,
+        sprintf("({%s})", statistic))
+    } else { # no automatic parentheses if user-supplied characters
+      statistic_glue <- ifelse(
+          grepl("\\{", statistic_glue),
+          statistic_glue,
+          sprintf("{%s}", statistic))
+    }
+  } 
+
+  # extract estimates using broom or parameters
+  if (any(grepl("conf", statistic)) | any(grepl("conf", estimate))) {
+    est <- suppressWarnings(try(tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
+    if (!inherits(est, "data.frame") || nrow(est) == 0) {
+      est <- suppressWarnings(try(tidy_easystats(model, ci=conf_level, ...), silent=TRUE))
+    }
+  } else {
+    est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
+    if (!inherits(est, "data.frame") || nrow(est) == 0) {
+      est <- suppressWarnings(try(tidy_easystats(model, ...), silent=TRUE))
+    }
+  } 
+
+  if (!inherits(est, "data.frame") || nrow(est) == 0 | !"term" %in% colnames(est)) {
+    stop(sprintf('Cannot extract the required information from models of class "%s". Consider installing and loading `broom.mixed`, or any other package that includes `tidy` and `glance` methods appropriate for this model type. Alternatively, you can easily define your own methods by following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
+  }
+
   # statistic override
   if (!is.null(statistic_override)) {
 
     # extract overriden statistics
-    so <- extract_statistic_override(model,
+    so <- extract_statistic_override(
+      model,
       statistic_override=statistic_override,
       conf_level=conf_level)
-
-    # factor -> character (important for R<4.0.0)
-    for (i in seq_along(so)) {
-      if (is.factor(so[[i]])) {
-        so[[i]] <- as.character(so[[i]])
-      }
-    }
-
-    bad1 <- (statistic != "conf.int") & (!statistic %in% colnames(so))
-    bad2 <- (statistic == "conf.int") & (!"conf.low" %in% colnames(so))
-
-    if (bad1 || bad2) {
-      stop(paste0(statistic, " cannot be extracted through the `statistic_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_statistic_override` function to diagnose the problem."))
-    } 
-
-    # extract estimates using `broom` or `parameters`
-    est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
-
-    if (!inherits(est, "data.frame") || nrow(est) == 0) {
-      est <- suppressWarnings(
-        try(tidy_easystats(model, ...), silent=TRUE)
-      )
-    }
-
-    if (!inherits(est, "data.frame") || nrow(est) == 0) {  
-      stop(sprintf('Cannot extract information from models of class "%s". Consider installing the `parameters`, `performance`, `broom.mixed`, or any other package with `tidy` and `glance` functions appropriate for this model type. Alternatively, you can define your own `tidy` method, following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
-    }
 
     # keep only columns that do not appear in so
     est <- est[, c('term', base::setdiff(colnames(est), colnames(so))), drop = FALSE]
@@ -59,41 +76,25 @@ extract_estimates <- function(model,
     # merge statistic_override and estimates
     est <- merge(est, so, by="term", sort=FALSE)
 
-  } else { # if statistic_override is not used
-
-    # extract estimates
-    if ('conf.int' %in% statistic) {
-      est <- suppressWarnings(try(tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
-      if (inherits(est, "try-error")) {
-        est <- suppressWarnings(
-          try(tidy_easystats(model, ci=conf_level, ...), silent=TRUE)
-        )
-      }
-    } else {
-      est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
-      if (inherits(est, "try-error")) {
-        est <- try(tidy_easystats(model, ...), silent=TRUE)
-      }
-    }
-    if (!inherits(est, "data.frame") || nrow(est) == 0) {  
-      stop(sprintf('Cannot extract information from models of class "%s". Consider installing the `parameters`, `performance`, `broom.mixed` or any other package with `tidy` and `glance` functions appropriate for this model type. Alternatively, you can define your own `tidy` method, following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
-    }
+    # # sanity
+    # bad1 <- (statistic != "conf.int") & (!statistic %in% colnames(so))
+    # bad2 <- (statistic == "conf.int") & (!"conf.low" %in% colnames(so))
+    # if (bad1 || bad2) {
+    #   stop(paste0(statistic, " cannot be extracted through the `statistic_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_statistic_override` function to diagnose the problem."))
+    # } 
 
   }
 
-  # tidy_custom if available
-  est_custom <- tidy_custom(model)
+  # # tidy_custom
+  # est_custom <- tidy_custom(model)
+  # sanity_tidy(est, est_custom, estimate, statistic, class(model)[1])
+  # if (!is.null(est_custom)) {
+  #   for (n in colnames(est_custom)) {
+  #     est[[n]] <- est_custom[[n]]
+  #   }
+  # }
 
-  # did tidy and tidy_custom produce useable output?
-  sanity_tidy(est, est_custom, estimate, statistic, class(model)[1])
-
-  # combine (or overwrite) tidy and tidy_custom
-  if (!is.null(est_custom)) {
-    for (n in colnames(est_custom)) {
-      est[[n]] <- est_custom[[n]]
-    }
-  }
-
+  # group coefficients
   if (anyDuplicated(est$term) > 0) {
     # broom.mixed `group` column
     if ("group" %in% colnames(est)) {
@@ -105,8 +106,10 @@ extract_estimates <- function(model,
     }
   }
 
-  # round estimates
-  est[[estimate]] <- rounding(est[[estimate]], fmt)
+  # round everything
+  for (n in colnames(est)) {
+    est[[n]] <- rounding(est[[n]], fmt)
+  }
 
   # stars
   if (!isFALSE(stars)) {
@@ -118,74 +121,49 @@ extract_estimates <- function(model,
                                   stars)
   }
 
-  # extract statistics
-  for (i in seq_along(statistic)) {
+  # extract statistics (there can be several)
+  for (i in seq_along(statistic_glue)) {
+    s <- statistic_glue[i]
+    est[[paste0("statistic", i)]] <- as.character(glue::glue_data(est, s))
 
-    s <- statistic[i]
-
-    # extract confidence intervals
-    if (s == 'conf.int') {
-      if (!all(c('conf.low', 'conf.high') %in% colnames(est))) {
-        stop('tidy cannot not extract confidence intervals for a model of this class.')
-      }
-
-      # rounding and brackets
-      est$conf.high <- rounding(est$conf.high, fmt)
-      est$conf.low <- rounding(est$conf.low, fmt)
-      est[[paste0('statistic', i)]] <- paste0('[', est$conf.low, ', ', est$conf.high, ']')
-
-      # extract other types of statistics
-    } else {
-
-      # rounding non-character values and parentheses
-      if (!is.character(est[[s]])) {
-        est[[s]] <- rounding(est[[s]], fmt)
-        est[[s]] <- ifelse(est[[s]] != '', # avoid empty parentheses for NAs
-          paste0('(', est[[s]], ')'),
-          est[[s]])
-        est[[paste0('statistic', i)]] <- est[[s]]
-      } else if (is.character(est[[s]])) {
-        # renaming character columns for later subsetting
-        est[[paste0('statistic', i)]] <- est[[s]]
-      }
-
-    }
+    # avoid empty parentheses for NAs
+    est[[paste0("statistic", i)]][est[[s]] == ""] <- ""
   }
 
+  # extract estimates
+  est$estimate <- as.character(glue::glue_data(est, estimate_glue))
+
   # subset columns
-  cols <- c('term', estimate, paste0('statistic', seq_along(statistic)))
+  cols <- c('term', 'estimate', paste0('statistic', seq_along(statistic_glue)))
   est <- est[, cols, drop = FALSE]
 
   # reshape to vertical
-  if (statistic_vertical) {
+  # sort by statistic to have se below coef, but don't sort terms
+  # use factor hack to preserve order with weird names like cor__(Inter.)
+  # especially important for broom.mixed models 
+  est$term <- factor(est$term, unique(est$term))
+  est <- stats::reshape(
+    data.frame(est),
+    varying       = grep("estimate|statistic", colnames(est), value=TRUE),
+    times         = grep("estimate|statistic", colnames(est), value=TRUE),
+    v.names       = "value",
+    timevar       = "statistic",
+    direction     = "long",
+    new.row.names = 1:1000)
+  est$id <- NULL
 
-    # sort by statistic to have se below coef, but don't sort terms
-    # use factor hack to preserve order with weird names like cor__(Inter.)
-    # especially important for broom.mixed models 
-    est$term <- factor(est$term, unique(est$term))
-    est <- stats::reshape(
-      data.frame(est),
-      varying       = grep("estimate|statistic", colnames(est), value=TRUE),
-      times         = grep("estimate|statistic", colnames(est), value=TRUE),
-      v.names       = "value",
-      timevar       = "statistic",
-      direction     = "long",
-      new.row.names = 1:1000)
-    est$id <- NULL
-
-    # sort then convert back to character
-    est <- est[order(est$term, est$statistic),]
-    est$term <- as.character(est$term)
-
-  } else {
-    est$statistic <- 'estimate'
-    est$value <- paste(est[[estimate]], est$statistic1)
-    est[[estimate]] <- est$statistic1 <- NULL
-  }
+  # sort then convert back to character
+  est <- est[order(est$term, est$statistic),]
+  est$term <- as.character(est$term)
 
   # drop empty rows (important for broom.mixed which produces group
   # estimates without standard errors)
   est <- est[est$value != "", ]
+
+  # drop statistic if NULL
+  if (is.null(statistic)) {
+    est <- est[!grepl("statistic", est$statistic), , drop=FALSE]
+  }
 
   # output
   return(est)
