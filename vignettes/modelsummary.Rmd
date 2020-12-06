@@ -30,13 +30,13 @@ models <- list(
 modelsummary(models)
 ```
 
-# Uncertainty estimates: SE, t, p, CI
+# Uncertainty estimates
 
 By default, `modelsummary` prints an uncertainty estimate in parentheses below the corresponding coefficient estimate. The value of this estimate is determined by the `statistic` argument.
 
-`statistic` must be a string which equal to `conf.int` or to one of the columns produced by the `broom::tidy` function. 
+`statistic` must be a string which equal to `conf.int`, one of the columns produced by the `broom::tidy` function, or a [glue string](https://glue.tidyverse.org/). 
 
-```r
+```{r, eval=FALSE}
 modelsummary(models, statistic = 'std.error')
 modelsummary(models, statistic = 'p.value')
 modelsummary(models, statistic = 'statistic')
@@ -45,13 +45,34 @@ modelsummary(models, statistic = 'statistic')
 You can display confidence intervals in brackets by setting `statistic="conf.int"`:
 
 ```{r}
-modelsummary(models, statistic = 'conf.int', conf_level = .99)
+modelsummary(models, gof_omit = ".*",
+             statistic = 'conf.int', 
+             conf_level = .99)
 ```
 
-To display uncertainty estimates next to coefficients instead of below them:
+Alternatively, you can supply a [glue string](https://glue.tidyverse.org/) to get more complicated results:
 
-```r
-modelsummary(models, statistic_vertical = FALSE)
+```{r}
+modelsummary(models, gof_omit = ".*",
+             statistic = "{std.error} ({p.value})")
+```
+
+You can also display several different uncertainty estimates below the coefficient estimates. For example,
+
+```{r}
+modelsummary(models, gof_omit = ".*",
+             statistic = c("conf.int",
+                           "s.e. = {std.error}", 
+                           "t = {statistic}",
+                           "p = {p.value}"))
+```
+
+Setting `statistic=NULL` omits all statistics. This can often be useful if, for example, you want to display confience intervals next to coefficients: 
+
+```{r}
+modelsummary(models, gof_omit = ".*",
+             estimate = "{estimate} [{conf.low}, {conf.high}]",
+             statistic = NULL)
 ```
 
 You can override the uncertainty estimates in a number of ways. First, you can specify a function that produces variance-covariance matrices:
@@ -85,16 +106,6 @@ custom_stats <- list(`OLS 1` = c(`(Intercept)` = 2, Literacy = 3, Clergy = 4),
                      `OLS 3` = c(`(Intercept)` = 1, Literacy = -5, Clergy = -2))
 modelsummary(models, statistic_override = custom_stats)
 ```
-
-You can also display several different uncertainty estimates below the coefficient estimates. For example,
-
-```r
-modelsummary(models, statistic = c('std.error', 'p.value', 'conf.int'))
-```
-
-Will produce something like this:
-
-<img src="https://imgur.com/yNLr5Nt.png" width="30%">
 
 # Alignment
 
@@ -195,7 +206,7 @@ The goodness-of-fit statistics will be printed in the table in the same order as
 
 Notice the subtle difference between `coef_map` and `gof_map`. On the one hand, `coef_map` works as a "white list": any coefficient not explicitly entered will be omitted from the table. On the other, `gof_map` works as a "black list": statistics need to be explicitly marked for omission.
 
-# Stars: Statistical significance markers
+# Stars
 
 Some people like to add "stars" to their model summary tables to mark statistical significance. The `stars` argument can take three types of input:
 
