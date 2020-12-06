@@ -8,9 +8,6 @@ msummary(
   models,
   output = "default",
   fmt = 3,
-  statistic = "std.error",
-  statistic_override = NULL,
-  statistic_vertical = TRUE,
   conf_level = 0.95,
   stars = FALSE,
   coef_map = NULL,
@@ -18,11 +15,15 @@ msummary(
   coef_rename = NULL,
   gof_map = NULL,
   gof_omit = NULL,
+  estimate = c("estimate", "std.error"),
+  estimate_override = NULL,
   add_rows = NULL,
   title = NULL,
   notes = NULL,
   align = NULL,
-  estimate = "estimate",
+  statistic = NULL,
+  statistic_override = NULL,
+  statistic_vertical = NULL,
   ...
 )
 }
@@ -43,23 +44,6 @@ to summarize}
   \item character: string is passed to the `sprintf` function. '\%.3f' will keep 3 digits after the decimal point with trailing zero. '\%.5f' will keep 5 digits. '\%.3e' will use exponential notation. See `?sprintf` for more options.
   \item function: a function which returns a formatted character string
 }}
-
-\item{statistic}{string name of the statistic to include in parentheses
-\itemize{
-  \item Typical values: "conf.int", "std.error", "statistic", "p.value"
-  \item Alternative values: any column name produced by `broom::tidy(model)`
-}}
-
-\item{statistic_override}{manually override the uncertainy estimates. This
-argument accepts three types of input:
-\itemize{
-  \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc.
-  \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
-  \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
-}}
-
-\item{statistic_vertical}{TRUE if statistics should be printed below
-estimates. FALSE if statistics should be printed beside estimates.}
 
 \item{conf_level}{confidence level to use for confidence intervals}
 
@@ -92,6 +76,21 @@ by `broom::glance` will be included unless they are omitted explicitly in
 \item{gof_omit}{string regular expression. Omits all matching gof statistics from
 the table (using `grepl(perl=TRUE)`).}
 
+\item{estimate}{character vector string name of the estimates and uncertainty estimates to include vertically for each model. Parentheses are added automatically to all estimates after the first one unless users supply a `glue` package string with curly braces {}. Acceptable values:
+\itemize{
+  \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
+  \item Alternative values: any column name produced by `broom::tidy(model)`
+  \item Accepts strings in the `glue` package format with braces {}: "estimate [{conf.low}, {conf.high}]"
+}}
+
+\item{estimate_override}{manually override (uncertainy) estimates. By default, this argument replaces the `std.error` This
+argument accepts three types of input:
+\itemize{
+  \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc.
+  \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
+  \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
+}}
+
 \item{add_rows}{a data.frame (or tibble) with the same number of columns as
 your main table. By default, rows are appended to the bottom of the table.
 You can define a "position" attribute of integers to set the row positions.
@@ -105,9 +104,11 @@ See examples.}
 the table.  "lcr" means that the first column will be left-aligned, the 2nd
 column center-aligned, and the 3rd column right-aligned.}
 
-\item{estimate}{character name of the estimate to display. Must be a column
-name in the data.frame produced by `tidy(model)`. In the vast majority of
-cases, the default value of this argument should not be changed.}
+\item{statistic}{deprecated argument. Use the `estimate` argument instead.}
+
+\item{statistic_override}{deprecated argument. Use the `estimate_override` argument instead.}
+
+\item{statistic_vertical}{deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.}
 
 \item{...}{all other arguments are passed to the `tidy` and `glance` methods
 used to extract estimates from the model. For example, this allows users to

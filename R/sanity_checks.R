@@ -42,6 +42,13 @@ sanity_align <- function(align, tab) {
 #' @keywords internal
 sanity_estimate <- function(estimate) checkmate::assert_character(estimate)
 
+#' sanity_check
+#'
+#' @keywords internal
+sanity_statistic <- function(statistic) {
+  checkmate::assert_character(statistic, len=1, null.ok=TRUE)
+}
+
 #' sanity check
 #'
 #' @keywords internal
@@ -50,26 +57,26 @@ sanity_title <- function(title) checkmate::assert_character(title, len = 1, null
 #' sanity check
 #'
 #' @keywords internal
-sanity_coef_map <- function(coef_map) {
-  checkmate::assert_character(coef_map, null.ok = TRUE)
-  checkmate::assert_character(names(coef_map), null.ok = TRUE,
-    unique = TRUE)
+sanity_coef <- function(coef_map, coef_rename, coef_omit) {
+  checkmate::assert_character(coef_map, null.ok=TRUE)
+  checkmate::assert_character(names(coef_map), null.ok=TRUE, unique=TRUE)
+  checkmate::assert_character(coef_rename, null.ok=TRUE)
+  checkmate::assert_character(names(coef_rename), null.ok=TRUE, unique=TRUE)
+  checkmate::assert_string(coef_omit, null.ok = TRUE)
+  if (!is.null(coef_rename) & !is.null(coef_map)) {
+    stop("coef_map and coef_rename cannot be used together.")
+  }
 }
 
-#' sanity check
-#'
-#' @keywords internal
-sanity_coef_omit <- function(coef_omit) checkmate::assert_string(coef_omit, null.ok = TRUE)
 
 #' sanity check
 #'
 #' @keywords internal
-sanity_gof_omit <- function(gof_omit) checkmate::assert_string(gof_omit, null.ok = TRUE)
+sanity_gof <- function(gof_map, gof_omit) {
+  checkmate::assert_string(gof_omit, null.ok = TRUE)
+  checkmate::assert_data_frame(gof_map, null.ok = TRUE)
+}
 
-#' sanity check
-#'
-#' @keywords internal
-sanity_gof_map <- function(gof_map) checkmate::assert_data_frame(gof_map, null.ok = TRUE)
 
 #' sanity check
 #'
@@ -194,24 +201,19 @@ sanity_add_rows <- function(add_rows, models) {
 #' sanity check
 #'
 #' @keywords internal
-sanity_statistic <- function(statistic,
-                             statistic_override,
-                             statistic_vertical,
-                             models) {
-
-  checkmate::assert_character(statistic)
+sanity_estimate_override <- function(models, estimate_override) {
 
   checkmate::assert(
-    checkmate::check_list(statistic_override, null.ok = TRUE),
-    checkmate::check_function(statistic_override, null.ok = TRUE),
-    checkmate::check_matrix(statistic_override, null.ok = TRUE),
-    checkmate::check_atomic_vector(statistic_override),
+    checkmate::check_list(estimate_override, null.ok = TRUE),
+    checkmate::check_function(estimate_override, null.ok = TRUE),
+    checkmate::check_matrix(estimate_override, null.ok = TRUE),
+    checkmate::check_atomic_vector(estimate_override),
     combine="or"
   )
 
-  if (class(statistic_override)[1] == "list") { # must be a simple list
-    checkmate::assert_true(length(statistic_override) == length(models))
-    for (s in statistic_override) {
+  if (class(estimate_override)[1] == "list") { # must be a simple list
+    checkmate::assert_true(length(estimate_override) == length(models))
+    for (s in estimate_override) {
       checkmate::assert(
         checkmate::check_function(s),
         checkmate::check_matrix(s),
@@ -219,19 +221,7 @@ sanity_statistic <- function(statistic,
         combine="or"
       )
     }
-
-  } else if (is.function(statistic_override)) {
-    statistic_override <- lapply(models, function(x) statistic_override)
-  }
-
-  # statistic_vertical = FALSE: only one statistic can be displayed horizontally
-  checkmate::assert_logical(statistic_vertical, len = 1, null.ok = FALSE)
-  if (!statistic_vertical) {
-    if (length(statistic) > 1 | (length(statistic_override) > 1) & !is.vector(statistic_override[1])) {
-      stop("Only one statistic can be displayed next to the estimate. Check the statistic_vertical argument.")
-
-    }
-  }
+  } 
 }
 
 #' sanity check

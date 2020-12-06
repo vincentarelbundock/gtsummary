@@ -5,8 +5,12 @@
 \title{sanity check}
 \usage{
 sanity_gof(gof_output, gof_custom)
+
+sanity_gof(gof_output, gof_custom)
 }
 \description{
+sanity check
+
 sanity check
 }
 \keyword{internal}

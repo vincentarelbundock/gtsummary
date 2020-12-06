@@ -39,7 +39,7 @@ test_that("coef_map with multiple vertical statistics", {
   mat <- modelsummary(
     models,
     output="dataframe",
-    statistic = c('std.error', 'conf.int'),
+    estimate = c('estimate', 'std.error', 'conf.int'),
     coef_map = cm
   )
   expect_s3_class(mat, 'data.frame')
@@ -52,7 +52,7 @@ test_that("coef_map with multiple vertical statistics", {
 
   mat <- modelsummary(models,
     output = 'dataframe',
-    statistic = c('std.error', 'conf.int'),
+    estimate = c('estimate', 'std.error', 'conf.int'),
     add_rows = rows,
     coef_map = cm)
 

@@ -8,12 +8,12 @@ extract_statistic_override <- function(model, statistic_override, conf_level=NUL
   # needed for logic tests
   out <- NULL
 
-  # sanity checks at the individual level
-  checkmate::assert(
-    checkmate::check_function(statistic_override),
-    checkmate::check_matrix(statistic_override),
-    checkmate::check_atomic_vector(statistic_override, names="named"),
-    combine = "or")
+  # # sanity checks at the individual level
+  # checkmate::assert(
+  #   checkmate::check_function(statistic_override),
+  #   checkmate::check_matrix(statistic_override),
+  #   checkmate::check_atomic_vector(statistic_override, names="named"),
+  #   combine = "or")
 
   # lmtest::coeftest
   if (is.function(statistic_override) || is.matrix(statistic_override)) {

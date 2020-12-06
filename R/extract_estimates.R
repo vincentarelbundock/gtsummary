@@ -3,50 +3,55 @@
 #' @inheritParams modelsummary
 #' @return data.frame with side-by-side model summaries
 #' @keywords internal
-extract_estimates <- function(model,
-                              statistic = 'std.error',
-                              statistic_override = NULL,
-                              statistic_vertical = TRUE,
-                              conf_level = .95,
-                              fmt = '%.3f',
-                              stars = FALSE,
-                              estimate = 'estimate',
-                              ...) {
+extract_estimates <- function(
+  model,
+  estimate = c("estimate", "std.error"),
+  estimate_override = NULL,
+  conf_level = .95,
+  fmt = "%.3f",
+  stars = FALSE,
+  ...) {
 
-  # convert estimate/statistic to glue format
+  # convert estimates to glue format
   estimate_glue <- ifelse(
-    grepl("\\{", estimate),
-    estimate, 
-    sprintf("{%s}", estimate))
+    estimate == "conf.int",
+    "[{conf.low}, {conf.high}]",
+    estimate)
 
-  if (is.null(statistic)) {
-    statistic_glue <- estimate_glue
-  } else {
-    statistic_glue <- ifelse(
-      statistic == "conf.int",
-      "[{conf.low}, {conf.high}]",
-      statistic)
-    if (is.null(statistic_override) || !is.character(statistic_override)) {
-      statistic_glue <- ifelse(
-        grepl("\\{", statistic_glue),
-        statistic_glue,
-        sprintf("({%s})", statistic))
-    } else { # no automatic parentheses if user-supplied characters
-      statistic_glue <- ifelse(
-          grepl("\\{", statistic_glue),
-          statistic_glue,
-          sprintf("{%s}", statistic))
+  # first estimate without parentheses
+  if (!grepl("\\{", estimate_glue[1])) {
+    estimate_glue[1] <- sprintf("{%s}", estimate_glue[1])
+  }
+
+  # second+ estimates with parentheses
+  if (length(estimate_glue) > 1) {
+    idx <- 2:length(estimate_glue)
+
+    # no automatic parentheses if user-supplied characters
+    if (!is.null(estimate_override) && is.character(estimate_override)) {
+      estimate_glue[idx] <- ifelse(
+        grepl("\\{", estimate_glue[idx]),
+        estimate_glue,
+        sprintf("{%s}", estimate_glue[idx]))
+
+    # automatic parentheses otherwise
+    } else { 
+      estimate_glue[idx] <- ifelse(
+        grepl("\\{", estimate_glue[idx]),
+        estimate_glue[idx],
+        sprintf("({%s})", estimate_glue[idx]))
     }
-  } 
+
+  }
 
   # extract estimates using broom or parameters
-  if (any(grepl("conf", statistic)) | any(grepl("conf", estimate))) {
+  if (any(grepl("conf", estimate_glue))) {
     est <- suppressWarnings(try(tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
     if (!inherits(est, "data.frame") || nrow(est) == 0) {
       est <- suppressWarnings(try(tidy_easystats(model, ci=conf_level, ...), silent=TRUE))
     }
   } else {
-    est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
+    est <- suppressWarnings(try(tidy(model...), silent=TRUE))
     if (!inherits(est, "data.frame") || nrow(est) == 0) {
       est <- suppressWarnings(try(tidy_easystats(model, ...), silent=TRUE))
     }
@@ -56,31 +61,31 @@ extract_estimates <- function(model,
     stop(sprintf('Cannot extract the required information from models of class "%s". Consider installing and loading `broom.mixed`, or any other package that includes `tidy` and `glance` methods appropriate for this model type. Alternatively, you can easily define your own methods by following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
   }
 
-  # statistic override
-  if (!is.null(statistic_override)) {
+  # estimate override
+  if (!is.null(estimate_override)) {
 
-    # extract overriden statistics
+    # extract overriden estimates
     so <- extract_statistic_override(
       model,
-      statistic_override=statistic_override,
+      statistic_override=estimate_override,
       conf_level=conf_level)
 
     # keep only columns that do not appear in so
     est <- est[, c('term', base::setdiff(colnames(est), colnames(so))), drop = FALSE]
 
-    # make sure statistic_override is of the correct length
+    # make sure estimate_override is of the correct length
     if (nrow(est) != nrow(so)) {
-      stop("statistic_override and estimates have different dimensions.")
+      stop("estimate_override and estimates have different dimensions.")
     }
 
-    # merge statistic_override and estimates
+    # merge estimate_override and estimates
     est <- merge(est, so, by="term", sort=FALSE)
 
     # # sanity
-    # bad1 <- (statistic != "conf.int") & (!statistic %in% colnames(so))
-    # bad2 <- (statistic == "conf.int") & (!"conf.low" %in% colnames(so))
+    # bad1 <- (estimate != "conf.int") & (!estimate %in% colnames(so))
+    # bad2 <- (estimate == "conf.int") & (!"conf.low" %in% colnames(so))
     # if (bad1 || bad2) {
-    #   stop(paste0(statistic, " cannot be extracted through the `statistic_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_statistic_override` function to diagnose the problem."))
+    #   stop(paste0(estimate, " cannot be extracted through the `estimate_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_estimate_override` function to diagnose the problem."))
     # } 
 
   }
@@ -116,25 +121,20 @@ extract_estimates <- function(model,
     if (!'p.value' %in% colnames(est)) {
       stop('To use the `stars` argument, the `tidy` function must produce a column called "p.value"')
     }
-    est[[estimate]] <- make_stars(est[[estimate]], 
-                                  est$p.value,
-                                  stars)
+    est$stars <- make_stars(est$p.value, stars)
+    estimate_glue[1] <- paste0(estimate_glue[1], "{stars}")
   }
 
-  # extract statistics (there can be several)
-  for (i in seq_along(statistic_glue)) {
-    s <- statistic_glue[i]
-    est[[paste0("statistic", i)]] <- as.character(glue::glue_data(est, s))
-
+  # extract estimates (there can be several)
+  for (i in seq_along(estimate_glue)) {
+    s <- estimate_glue[i]
+    est[[paste0("modelsummary_tmp", i)]] <- as.character(glue::glue_data(est, s))
     # avoid empty parentheses for NAs
-    est[[paste0("statistic", i)]][est[[s]] == ""] <- ""
+    est[[paste0("modelsummary_tmp", i)]][est[[s]] == ""] <- ""
   }
-
-  # extract estimates
-  est$estimate <- as.character(glue::glue_data(est, estimate_glue))
 
   # subset columns
-  cols <- c('term', 'estimate', paste0('statistic', seq_along(statistic_glue)))
+  cols <- c('term', paste0('modelsummary_tmp', seq_along(estimate_glue)))
   est <- est[, cols, drop = FALSE]
 
   # reshape to vertical
@@ -144,8 +144,8 @@ extract_estimates <- function(model,
   est$term <- factor(est$term, unique(est$term))
   est <- stats::reshape(
     data.frame(est),
-    varying       = grep("estimate|statistic", colnames(est), value=TRUE),
-    times         = grep("estimate|statistic", colnames(est), value=TRUE),
+    varying       = grep("modelsummary_tmp\\d+$", colnames(est), value=TRUE),
+    times         = grep("modelsummary_tmp\\d+$", colnames(est), value=TRUE),
     v.names       = "value",
     timevar       = "statistic",
     direction     = "long",
@@ -159,11 +159,6 @@ extract_estimates <- function(model,
   # drop empty rows (important for broom.mixed which produces group
   # estimates without standard errors)
   est <- est[est$value != "", ]
-
-  # drop statistic if NULL
-  if (is.null(statistic)) {
-    est <- est[!grepl("statistic", est$statistic), , drop=FALSE]
-  }
 
   # output
   return(est)

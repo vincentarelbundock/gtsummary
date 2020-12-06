@@ -10,7 +10,6 @@ test_that("glue + no statistic",{
   tab <- modelsummary(
     mod, 
     estimate  = "**{estimate}** [{conf.low}, {conf.high}] ({p.value})",
-    statistic = NULL,
     output = "data.frame",
     gof_omit  = ".*")
   truth4 <- c("**30.099** [26.762, 33.436] (0.000)", "**-0.068** [-0.089, -0.048] (0.000)", "")
@@ -23,8 +22,8 @@ test_that("glue + no statistic",{
 test_that("glue + multi statistics",{
   tab <- modelsummary(
     mod, 
-    estimate  = "**{estimate}** [{conf.low}, {conf.high}]",
-    statistic = c("t={statistic}", "p={p.value}"),
+    estimate  = c("**{estimate}** [{conf.low}, {conf.high}]",
+                  "t={statistic}", "p={p.value}"),
     output = "data.frame",
     gof_omit  = ".*")
   truth4 <- c("**30.099** [26.762, 33.436]", "t=18.421", "p=0.000", "**-0.068** [-0.089, -0.048]", 
