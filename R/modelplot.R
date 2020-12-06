@@ -125,7 +125,6 @@ modelplot <- function(models,
     ggplot2::theme_minimal() +
     ggplot2::theme(legend.title = ggplot2::element_blank())
 
-  return(p)
 
   # background geoms
   if (is.list(background)) {
@@ -171,6 +170,7 @@ modelplot <- function(models,
     }
     p <- p + ggplot2::labs(x='Coefficient estimates', y='')
   }
-  p
+
+  return(p)
 
 }

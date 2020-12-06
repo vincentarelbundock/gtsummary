@@ -31,11 +31,19 @@ extract_estimates <- function(
     sprintf("{%s}", estimate_glue))
     
   # statistics to glue
-  statistic_glue <- ifelse(
-    grepl("\\{", statistic_glue),
-    statistic_glue,
-    sprintf("({%s})", statistic_glue))
-    
+  if (!is.null(statistic_override) &&     # don't add parentheses to manual strings
+      is.character(statistic_override)) {
+    statistic_glue <- ifelse(
+      grepl("\\{", statistic_glue),
+      statistic_glue,
+      sprintf("{%s}", statistic_glue))
+  } else {
+    statistic_glue <- ifelse(
+      grepl("\\{", statistic_glue),
+      statistic_glue,
+      sprintf("({%s})", statistic_glue))
+  }
+
   # combine estimate and statistics
   estimate_glue <- c(estimate_glue, statistic_glue)
   

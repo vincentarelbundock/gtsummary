@@ -50,17 +50,12 @@ test_that("conf_level=NULL", {
 
 
 test_that("statistic_override", {
-
   mod <- list(lm(hp ~ mpg + drat, data = mtcars),
               lm(hp ~ mpg + drat, data = mtcars))
   so <- list(vcov, sandwich::vcovHC)
-
   p <- modelplot(mod, statistic_override=so, draw=FALSE)
-
-  known <- c(165.179327669237, 182.406373565931, -13.6502180401172,
-             -15.0390897152001, -22.1832974370102, -28.1858724755655)
+  known <- c(-22.1832974370101, -28.1858724755655, -13.6502180401172, -15.0390897152002, 165.179327669237, 182.406373565932)         
   expect_equal(p$conf.low, known)
-
 })
 
 
