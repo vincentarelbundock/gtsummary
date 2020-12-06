@@ -36,7 +36,7 @@ from the table (using `grepl(perl=TRUE)`).}
 that will appear in the table. Names refer to the original term names stored
 in the model object, e.g. c("hp:mpg"="hp X mpg") for an interaction term.}
 
-\item{statistic_override}{deprecated argument. Use the `estimate_override` argument instead.}
+\item{statistic_override}{deprecated argument. Use the `statistic_override` argument instead.}
 
 \item{facet}{TRUE or FALSE. When the 'models' argument includes several
 model objects, TRUE draws terms in separate facets, and FALSE draws terms

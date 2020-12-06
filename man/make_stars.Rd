@@ -4,7 +4,7 @@
 \alias{make_stars}
 \title{Internal function to prepare stars}
 \usage{
-make_stars(x, pvalues, stars)
+make_stars(pvalues, stars)
 }
 \description{
 Internal function to prepare stars

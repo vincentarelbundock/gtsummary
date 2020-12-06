@@ -8,21 +8,20 @@ msummary(
   models,
   output = "default",
   fmt = 3,
-  conf_level = 0.95,
+  statistic = "std.error",
+  statistic_override = NULL,
   stars = FALSE,
+  conf_level = 0.95,
   coef_map = NULL,
   coef_omit = NULL,
   coef_rename = NULL,
   gof_map = NULL,
   gof_omit = NULL,
-  estimate = c("estimate", "std.error"),
-  estimate_override = NULL,
+  estimate = "estimate",
   add_rows = NULL,
   title = NULL,
   notes = NULL,
   align = NULL,
-  statistic = NULL,
-  statistic_override = NULL,
   statistic_vertical = NULL,
   ...
 )
@@ -45,7 +44,9 @@ to summarize}
   \item function: a function which returns a formatted character string
 }}
 
-\item{conf_level}{confidence level to use for confidence intervals}
+\item{statistic}{deprecated argument. Use the `estimate` argument instead.}
+
+\item{statistic_override}{deprecated argument. Use the `statistic_override` argument instead.}
 
 \item{stars}{to indicate statistical significance
 \itemize{
@@ -53,6 +54,8 @@ to summarize}
   \item TRUE: *=.1, **=.05, ***=.01
   \item Named numeric vector for custom stars such as `c('*' = .1, '+' = .05)`
 }}
+
+\item{conf_level}{confidence level to use for confidence intervals}
 
 \item{coef_map}{named character vector. Values refer to the variable names
 that will appear in the table. Names refer to the original term names stored
@@ -76,20 +79,9 @@ by `broom::glance` will be included unless they are omitted explicitly in
 \item{gof_omit}{string regular expression. Omits all matching gof statistics from
 the table (using `grepl(perl=TRUE)`).}
 
-\item{estimate}{character vector string name of the estimates and uncertainty estimates to include vertically for each model. Parentheses are added automatically to all estimates after the first one unless users supply a `glue` package string with curly braces {}. Acceptable values:
-\itemize{
-  \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
-  \item Alternative values: any column name produced by `broom::tidy(model)`
-  \item Accepts strings in the `glue` package format with braces {}: "estimate [{conf.low}, {conf.high}]"
-}}
-
-\item{estimate_override}{manually override (uncertainy) estimates. By default, this argument replaces the `std.error` This
-argument accepts three types of input:
-\itemize{
-  \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc.
-  \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
-  \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
-}}
+\item{estimate}{character name of the estimate to display. Must be a column
+name in the data.frame produced by `tidy(model)`. In the vast majority of
+cases, the default value of this argument should not be changed.}
 
 \item{add_rows}{a data.frame (or tibble) with the same number of columns as
 your main table. By default, rows are appended to the bottom of the table.
@@ -103,10 +95,6 @@ See examples.}
 \item{align}{A character string of length equal to the number of columns in
 the table.  "lcr" means that the first column will be left-aligned, the 2nd
 column center-aligned, and the 3rd column right-aligned.}
-
-\item{statistic}{deprecated argument. Use the `estimate` argument instead.}
-
-\item{statistic_override}{deprecated argument. Use the `estimate_override` argument instead.}
 
 \item{statistic_vertical}{deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.}
 

@@ -10,7 +10,6 @@ modelsummary_wide(
   fmt = "\%.3f",
   statistic = "std.error",
   statistic_override = NULL,
-  statistic_vertical = TRUE,
   conf_level = 0.95,
   stars = FALSE,
   coef_group = NULL,
@@ -23,6 +22,7 @@ modelsummary_wide(
   title = NULL,
   notes = NULL,
   estimate = "estimate",
+  statistic_vertical = NULL,
   ...
 )
 }
@@ -46,9 +46,7 @@ to summarize}
 
 \item{statistic}{deprecated argument. Use the `estimate` argument instead.}
 
-\item{statistic_override}{deprecated argument. Use the `estimate_override` argument instead.}
-
-\item{statistic_vertical}{deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.}
+\item{statistic_override}{deprecated argument. Use the `statistic_override` argument instead.}
 
 \item{conf_level}{confidence level to use for confidence intervals}
 
@@ -96,12 +94,11 @@ See examples.}
 
 \item{notes}{list or vector of notes to append to the bottom of the table.}
 
-\item{estimate}{character vector string name of the estimates and uncertainty estimates to include vertically for each model. Parentheses are added automatically to all estimates after the first one unless users supply a `glue` package string with curly braces {}. Acceptable values:
-\itemize{
-  \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
-  \item Alternative values: any column name produced by `broom::tidy(model)`
-  \item Accepts strings in the `glue` package format with braces {}: "estimate [{conf.low}, {conf.high}]"
-}}
+\item{estimate}{character name of the estimate to display. Must be a column
+name in the data.frame produced by `tidy(model)`. In the vast majority of
+cases, the default value of this argument should not be changed.}
+
+\item{statistic_vertical}{deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.}
 
 \item{...}{all other arguments are passed to the `tidy` and `glance` methods
 used to extract estimates from the model. For example, this allows users to

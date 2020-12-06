@@ -34,16 +34,15 @@ extract_models <- function(...) {
 #'   \item TRUE: *=.1, **=.05, ***=.01
 #'   \item Named numeric vector for custom stars such as `c('*' = .1, '+' = .05)`
 #' }
-#' @param estimate character vector string name of the estimates and uncertainty estimates to include vertically for each model. Parentheses are added automatically to all estimates after the first one unless users supply a `glue` package string with curly braces {}. Acceptable values:
+#' @param statistic character vector of raw strings or glue strings (see examples) which represent the uncertainty statistics to report vertically. Parentheses are added automatically unless the value includes `glue` curly braces {}. Acceptable values:
 #' \itemize{
 #'   \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
 #'   \item Alternative values: any column name produced by `broom::tidy(model)`
-#'   \item Accepts strings in the `glue` package format with braces {}: "estimate [{conf.low}, {conf.high}]"
+#'   \item `glue` package strings with braces: "{estimate} [{conf.low}, {conf.high}]"
 #' }
-#' @param estimate_override manually override (uncertainy) estimates. By default, this argument replaces the `std.error` This
-#' argument accepts three types of input:
+#' @param statistic_override manually override statistics. Accepts three types of input:
 #' \itemize{
-#'   \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc.
+#'   \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc. If the `lmtest` package is installed, `modelsummary` will try to use it to override: "std.error", "statistic", "p.value", "conf.int". If the `lmtest` package is not installed, `modelsummary` will override "std.error" by using the square root of the vcov matrix diagonal.
 #'   \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
 #'   \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
 #' }
@@ -71,6 +70,9 @@ extract_models <- function(...) {
 #' See examples.
 #' @param title string
 #' @param notes list or vector of notes to append to the bottom of the table.
+#' @param estimate character name of the estimate to display. Must be a column
+#' name in the data.frame produced by `tidy(model)`. In the vast majority of
+#' cases, the default value of this argument should not be changed.
 #' @param align A character string of length equal to the number of columns in
 #' the table.  "lcr" means that the first column will be left-aligned, the 2nd
 #' column center-aligned, and the 3rd column right-aligned.
@@ -78,7 +80,7 @@ extract_models <- function(...) {
 #' used to extract estimates from the model. For example, this allows users to
 #' set `exponentiate=TRUE` to exponentiate logistic regression coefficients.
 #' @param statistic deprecated argument. Use the `estimate` argument instead.
-#' @param statistic_override deprecated argument. Use the `estimate_override` argument instead.
+#' @param statistic_override deprecated argument. Use the `statistic_override` argument instead.
 #' @param statistic_vertical deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.
 #' @return a regression table in a format determined by the `output` argument.
 #' @importFrom broom glance tidy
@@ -139,21 +141,20 @@ modelsummary <- function(
   models,
   output = "default",
   fmt = 3,
-  conf_level = 0.95,
+  statistic = "std.error",
+  statistic_override = NULL,
   stars = FALSE,
+  conf_level = 0.95,
   coef_map = NULL,
   coef_omit = NULL,
   coef_rename = NULL,
   gof_map = NULL,
   gof_omit = NULL,
-  estimate = c("estimate", "std.error"),
-  estimate_override = NULL,
+  estimate = "estimate",
   add_rows = NULL,
   title = NULL,
   notes = NULL,
   align = NULL,
-  statistic = NULL,
-  statistic_override = NULL,
   statistic_vertical = NULL,
   ...) {
 
@@ -161,7 +162,7 @@ modelsummary <- function(
   sanity_output(output)
   sanity_statistic(statistic)
   sanity_estimate(estimate)
-  sanity_estimate_override(models, estimate_override)
+  sanity_statistic_override(models, statistic_override)
   sanity_conf_level(conf_level)
   sanity_coef(coef_map, coef_rename, coef_omit)
   # sanity_gof(gof_map, gof_omit)
@@ -169,31 +170,10 @@ modelsummary <- function(
   sanity_fmt(fmt)
 
   # deprecation: statistic, statistic_override, statistic_vertical
-  if (!is.null(statistic) || 
-      !is.null(statistic_override) || 
-      !is.null(statistic_vertical)) {
-    warning("The `statistic`, `statistic_override`, and `statistic_vertical`
-            arguments will soon be deprecated. Please use the `estimate` and
-            `estimate_override` arguments instead.")
-  }
-
-  if (!is.null(estimate_override) && 
-      !is.null(statistic_override)) {
-    stop("Cannot use `estimate_override` and `statistic_override`
-         simultaneously. Please use `estimate_override` since
-         `statistic_override` will soon be deprecated.")
-  }
-
-  if (is.null(estimate_override) && 
-      !is.null(statistic_override)) {
-    estimate_override <- statistic_override
-  }
-
-  # if default `estimate`, then replace the second element by `statistic`
-  if (!is.null(statistic)) {
-    if (identical(estimate, c("estimate", "std.error"))) {
-      estimate[2] <- statistic
-    }
+  if (!is.null(statistic_vertical)) {
+    warning("The `statistic_vertical` argument is deprecated. To present
+            uncertainty estimates next to the main estimate, you can supply a
+            `glue` string to the `estimate` argument. See examples.")
   }
 
   # output
@@ -215,9 +195,9 @@ modelsummary <- function(
   }
   model_id <- paste("Model", 1:length(models))
 
-  # estimate_override must be a list
-  if (!inherits(estimate_override, "list")) {
-    estimate_override <- rep(list(estimate_override), length(models))
+  # statistic_override must be a list
+  if (!inherits(statistic_override, "list")) {
+    statistic_override <- rep(list(statistic_override), length(models))
   }
 
   # estimates: extract and combine
@@ -229,7 +209,8 @@ modelsummary <- function(
       model              = models[[i]],
       fmt                = fmt,
       estimate           = estimate,
-      estimate_override  = estimate_override[[i]],
+      statistic          = statistic,
+      statistic_override = statistic_override[[i]],
       conf_level         = conf_level,
       stars              = stars,
       ...

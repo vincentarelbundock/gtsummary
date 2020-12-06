@@ -6,8 +6,9 @@
 \usage{
 extract_estimates(
   model,
-  estimate = c("estimate", "std.error"),
-  estimate_override = NULL,
+  estimate = "estimate",
+  statistic = "std.error",
+  statistic_override = NULL,
   conf_level = 0.95,
   fmt = "\%.3f",
   stars = FALSE,
@@ -17,20 +18,13 @@ extract_estimates(
 \arguments{
 \item{model}{object type with an available `tidy` method.}
 
-\item{estimate}{character vector string name of the estimates and uncertainty estimates to include vertically for each model. Parentheses are added automatically to all estimates after the first one unless users supply a `glue` package string with curly braces {}. Acceptable values:
-\itemize{
-  \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
-  \item Alternative values: any column name produced by `broom::tidy(model)`
-  \item Accepts strings in the `glue` package format with braces {}: "estimate [{conf.low}, {conf.high}]"
-}}
+\item{estimate}{character name of the estimate to display. Must be a column
+name in the data.frame produced by `tidy(model)`. In the vast majority of
+cases, the default value of this argument should not be changed.}
 
-\item{estimate_override}{manually override (uncertainy) estimates. By default, this argument replaces the `std.error` This
-argument accepts three types of input:
-\itemize{
-  \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc.
-  \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
-  \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
-}}
+\item{statistic}{deprecated argument. Use the `estimate` argument instead.}
+
+\item{statistic_override}{deprecated argument. Use the `statistic_override` argument instead.}
 
 \item{conf_level}{confidence level to use for confidence intervals}
 

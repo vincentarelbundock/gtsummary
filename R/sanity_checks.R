@@ -40,13 +40,13 @@ sanity_align <- function(align, tab) {
 #' sanity check
 #'
 #' @keywords internal
-sanity_estimate <- function(estimate) checkmate::assert_character(estimate)
+sanity_estimate <- function(estimate) checkmate::assert_character(estimate, len=1)
 
 #' sanity_check
 #'
 #' @keywords internal
 sanity_statistic <- function(statistic) {
-  checkmate::assert_character(statistic, len=1, null.ok=TRUE)
+  checkmate::assert_character(statistic, null.ok=TRUE)
 }
 
 #' sanity check
@@ -201,19 +201,19 @@ sanity_add_rows <- function(add_rows, models) {
 #' sanity check
 #'
 #' @keywords internal
-sanity_estimate_override <- function(models, estimate_override) {
+sanity_statistic_override <- function(models, statistic_override) {
 
   checkmate::assert(
-    checkmate::check_list(estimate_override, null.ok = TRUE),
-    checkmate::check_function(estimate_override, null.ok = TRUE),
-    checkmate::check_matrix(estimate_override, null.ok = TRUE),
-    checkmate::check_atomic_vector(estimate_override),
+    checkmate::check_list(statistic_override, null.ok = TRUE),
+    checkmate::check_function(statistic_override, null.ok = TRUE),
+    checkmate::check_matrix(statistic_override, null.ok = TRUE),
+    checkmate::check_atomic_vector(statistic_override),
     combine="or"
   )
 
-  if (class(estimate_override)[1] == "list") { # must be a simple list
-    checkmate::assert_true(length(estimate_override) == length(models))
-    for (s in estimate_override) {
+  if (class(statistic_override)[1] == "list") { # must be a simple list
+    checkmate::assert_true(length(statistic_override) == length(models))
+    for (s in statistic_override) {
       checkmate::assert(
         checkmate::check_function(s),
         checkmate::check_matrix(s),

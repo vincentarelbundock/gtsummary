@@ -5,45 +5,40 @@
 #' @keywords internal
 extract_estimates <- function(
   model,
-  estimate = c("estimate", "std.error"),
-  estimate_override = NULL,
+  estimate = "estimate",
+  statistic = "std.error",
+  statistic_override = NULL,
   conf_level = .95,
   fmt = "%.3f",
   stars = FALSE,
   ...) {
 
-  # convert estimates to glue format
+  # conf.int to glue
   estimate_glue <- ifelse(
     estimate == "conf.int",
     "[{conf.low}, {conf.high}]",
     estimate)
 
-  # first estimate without parentheses
-  if (!grepl("\\{", estimate_glue[1])) {
-    estimate_glue[1] <- sprintf("{%s}", estimate_glue[1])
-  }
+  statistic_glue <- ifelse(
+    statistic == "conf.int",
+    "[{conf.low}, {conf.high}]",
+    statistic)
 
-  # second+ estimates with parentheses
-  if (length(estimate_glue) > 1) {
-    idx <- 2:length(estimate_glue)
-
-    # no automatic parentheses if user-supplied characters
-    if (!is.null(estimate_override) && is.character(estimate_override)) {
-      estimate_glue[idx] <- ifelse(
-        grepl("\\{", estimate_glue[idx]),
-        estimate_glue,
-        sprintf("{%s}", estimate_glue[idx]))
-
-    # automatic parentheses otherwise
-    } else { 
-      estimate_glue[idx] <- ifelse(
-        grepl("\\{", estimate_glue[idx]),
-        estimate_glue[idx],
-        sprintf("({%s})", estimate_glue[idx]))
-    }
-
-  }
-
+  # estimate to glue
+  estimate_glue <- ifelse(
+    grepl("\\{", estimate_glue),
+    estimate_glue,
+    sprintf("{%s}", estimate_glue))
+    
+  # statistics to glue
+  statistic_glue <- ifelse(
+    grepl("\\{", statistic_glue),
+    statistic_glue,
+    sprintf("({%s})", statistic_glue))
+    
+  # combine estimate and statistics
+  estimate_glue <- c(estimate_glue, statistic_glue)
+  
   # extract estimates using broom or parameters
   if (any(grepl("conf", estimate_glue))) {
     est <- suppressWarnings(try(tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
@@ -62,30 +57,30 @@ extract_estimates <- function(
   }
 
   # estimate override
-  if (!is.null(estimate_override)) {
+  if (!is.null(statistic_override)) {
 
     # extract overriden estimates
     so <- extract_statistic_override(
       model,
-      statistic_override=estimate_override,
+      statistic_override=statistic_override,
       conf_level=conf_level)
 
     # keep only columns that do not appear in so
     est <- est[, c('term', base::setdiff(colnames(est), colnames(so))), drop = FALSE]
 
-    # make sure estimate_override is of the correct length
+    # make sure statistic_override is of the correct length
     if (nrow(est) != nrow(so)) {
-      stop("estimate_override and estimates have different dimensions.")
+      stop("statistic_override and estimates have different dimensions.")
     }
 
-    # merge estimate_override and estimates
+    # merge statistic_override and estimates
     est <- merge(est, so, by="term", sort=FALSE)
 
     # # sanity
     # bad1 <- (estimate != "conf.int") & (!estimate %in% colnames(so))
     # bad2 <- (estimate == "conf.int") & (!"conf.low" %in% colnames(so))
     # if (bad1 || bad2) {
-    #   stop(paste0(estimate, " cannot be extracted through the `estimate_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_estimate_override` function to diagnose the problem."))
+    #   stop(paste0(estimate, " cannot be extracted through the `statistic_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_statistic_override` function to diagnose the problem."))
     # } 
 
   }

@@ -10,9 +10,12 @@ test_that("same stars with different statistics", {
   m <- lm(dist ~ speed, data = cars)
   tab1 <- modelsummary(m, stars=TRUE, output="dataframe")
   tab2 <- modelsummary(m, 
-    estimate=c("estimate", "p.value"), stars=TRUE, output="dataframe")
+    statistic="p.value", 
+    stars=TRUE, 
+    output="dataframe")
   tab3 <- modelsummary(m, 
-    estimate=c("estimate", "p.value", "conf.int"), stars=TRUE,
+    statistic=c("p.value", "conf.int"), 
+    stars=TRUE,
     output="dataframe")
   tab1 <- tab1[[4]]
   tab2 <- tab2[[4]]
