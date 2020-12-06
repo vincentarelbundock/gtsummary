@@ -68,85 +68,52 @@ modelplot <- function(models,
 
 
   if (is.null(conf_level)) {
-    out <- modelsummary(
-      output="dataframe",
-      models=models,
-      fmt="%.50f",
-      conf_level=conf_level,
-      coef_map=coef_map,
-      coef_omit=coef_omit,
-      coef_rename=coef_rename,
-      statistic_override=statistic_override,
-      ...
-    )
-    out <- out[out$part == "estimates" & out$statistic == "estimate",]
-
-    # save for sorting later
-    term_order <- unique(out$term)
-
-    # this used to be a `pivot_long` but I can't grok reshape and don't want
-    # the tidyr dependency
-    out_split <- lapply(4:ncol(out), function(i)
-                 data.frame(out[, 1:3], 
-                            model=colnames(out)[i], 
-                            estimate=out[[i]]))
-    out <- bind_rows(out_split)
-    out <- out[out$estimate != "",]
-
-    # sort
-    out$term <- factor(out$term, term_order)
-    out <- out[order(out$term, out$model),]
-
-    # character -> numeric (modelsummary produces characters)
-    out$estimate <- as.numeric(out$estimate)
-
+    estimate <- "estimate"
   } else {
-    out <- modelsummary(
-      output="dataframe",
-      models=models,
-      fmt="%.50f",
-      conf_level=conf_level,
-      coef_map=coef_map,
-      coef_omit=coef_omit,
-      coef_rename=coef_rename,
-      statistic="conf.int",
-      statistic_override=statistic_override,
-      ...
-    )
-
-    # save for sorting later
-    term_order <- unique(out$term)
-
-    # this used to be a `pivot_long` and a `pivot_wide` but I can't grok
-    # reshape and don't want the tidyr dependency
-    out <- out[out$part == "estimates",]
-    out_split <- lapply(4:ncol(out), function(i) 
-                        data.frame(out[, 1:3], model=colnames(out)[i], estimate=out[[i]]))
-    out <- bind_rows(out_split)
-    out <- stats::reshape(
-      out, 
-      timevar = "statistic",
-      idvar = c("part", "term", "model"),
-      direction = "wide")
-    colnames(out) <- gsub("^estimate\\.", "", colnames(out))
-
-    # sort
-    out <- out[out$estimate != "",]
-    out$term <- factor(out$term, term_order)
-    out <- out[order(out$term, out$model),]
-
-    # clean statistic
-    regex <- "\\[(.*), (.*)\\]"
-    out$conf.low <- as.numeric(gsub(regex, "\\1", out$statistic1))
-    out$conf.high <- as.numeric(gsub(regex, "\\2", out$statistic1))
-    out$statistic1 <- NULL
-    out$estimate <- as.numeric(out$estimate)
-
+    estimate="{estimate}|{conf.low}|{conf.high}"
   }
 
-  dat <- out
-  dat$term <- factor(dat$term, rev(unique(dat$term)))
-  dat$model <- factor(dat$model, unique(dat$model))
+  out <- modelsummary(
+    output="dataframe",
+    models=models,
+    fmt="%.50f",
+    estimate=estimate,
+    statistic=NULL,
+    conf_level=conf_level,
+    coef_map=coef_map,
+    coef_omit=coef_omit,
+    coef_rename=coef_rename,
+    gof_omit=".*",
+    statistic_override=statistic_override#,
+    # ...
+  )
+  out$part <- out$statistic <- NULL
+
+  # save for sorting later
+  term_order <- unique(out$term)
+
+  out <- stats::reshape(
+    out, 
+    varying = colnames(out)[2:ncol(out)],
+    times = colnames(out)[2:ncol(out)],
+    v.names = "value",
+    timevar = "model",
+    direction = "long")
+
+  if (is.null(conf_level)) {
+    out$estimate <- as.numeric(out$value)
+  } else {
+    regex <- "(.*)\\|(.*)\\|(.*)"
+    out$estimate <- as.numeric(gsub(regex, "\\1", out$value))
+    out$conf.low <- as.numeric(gsub(regex, "\\2", out$value))
+    out$conf.high <- as.numeric(gsub(regex, "\\3", out$value))
+  }
+
+  # clean and sort
+  dat <- stats::na.omit(out)
+  row.names(dat) <- dat$value <- dat$id <- NULL
+  dat$term <- factor(dat$term, rev(term_order))
+  dat <- dat[order(dat$term, dat$model),]
 
   if (!draw) {
     return(dat)
@@ -157,6 +124,8 @@ modelplot <- function(models,
   p <- ggplot2::ggplot(dat) +
     ggplot2::theme_minimal() +
     ggplot2::theme(legend.title = ggplot2::element_blank())
+
+  return(p)
 
   # background geoms
   if (is.list(background)) {
@@ -203,4 +172,5 @@ modelplot <- function(models,
     p <- p + ggplot2::labs(x='Coefficient estimates', y='')
   }
   p
+
 }
