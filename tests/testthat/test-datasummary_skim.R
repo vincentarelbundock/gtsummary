@@ -68,8 +68,6 @@ test_that("simple dataset", {
 })
 
 
-
-
 # # RDatasets tests: must be commented out
 # any_categorical <- function(x) {
 #   # datasummary_skim ignores characters with more than 10 levels
