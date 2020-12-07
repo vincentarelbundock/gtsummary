@@ -54,7 +54,7 @@ extract_estimates <- function(
       est <- suppressWarnings(try(tidy_easystats(model, ci=conf_level, ...), silent=TRUE))
     }
   } else {
-    est <- suppressWarnings(try(tidy(model...), silent=TRUE))
+    est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
     if (!inherits(est, "data.frame") || nrow(est) == 0) {
       est <- suppressWarnings(try(tidy_easystats(model, ...), silent=TRUE))
     }
