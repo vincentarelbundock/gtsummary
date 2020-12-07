@@ -5,9 +5,38 @@ library(modelsummary)
 test_that("exponentiate logit coefficients", {
 
   mod <- glm(am ~ mpg, mtcars, family = binomial)
-  raw <- modelsummary(mod, output="dataframe", exponentiate=TRUE)
 
-  truth <- c("0.001", "(2.351)", "1.359", "(0.115)", "32", "33.7", "36.6", "-14.838")
-  expect_equal(truth, unname(raw[[4]]))
+  # not exponentiated
+  raw <- modelsummary(
+    mod, 
+    gof_omit=".*",
+    output="dataframe", 
+    exponentiate=FALSE)
+  truth <- c("-6.604", "(2.351)", "0.307", "(0.115)")
+  expect_equal(raw[[4]], truth)
+
+  # exponentiated conf.int
+  raw <- modelsummary(
+    mod, 
+    gof_omit=".*",
+    statistic="conf.int",
+    output="dataframe", 
+    exponentiate=FALSE)
+  truth <- c("-6.604", "[-12.328, -2.772]", "0.307", "[0.122, 0.587]")
+  expect_equal(raw[[4]], truth)
+
+  # exponentiated std.error
+  # As noted by Alex P Hayes: 
+  # https://github.com/tidymodels/broom/issues/422
+  # I believe this is the correct behavior: quantiles (and thereby confidence
+  # intervals) are invariant under monotonic transformation (exp()) but
+  # variances are not. 
+  raw <- modelsummary(
+    mod, 
+    gof_omit=".*",
+    output="dataframe", 
+    exponentiate=FALSE)
+  truth <- c("-6.604", "(2.351)", "0.307", "(0.115)")
+  expect_equal(raw[[4]], truth)
 
 })
