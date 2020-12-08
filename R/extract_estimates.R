@@ -84,23 +84,16 @@ extract_estimates <- function(
     # merge statistic_override and estimates
     est <- merge(est, so, by="term", sort=FALSE)
 
-    # # sanity
-    # bad1 <- (estimate != "conf.int") & (!estimate %in% colnames(so))
-    # bad2 <- (estimate == "conf.int") & (!"conf.low" %in% colnames(so))
-    # if (bad1 || bad2) {
-    #   stop(paste0(estimate, " cannot be extracted through the `statistic_override` argument. You might want to install the `lmtest` package and/or look at the `modelsummary:::extract_statistic_override` function to diagnose the problem."))
-    # } 
-
   }
 
-  # # tidy_custom
-  # est_custom <- tidy_custom(model)
-  # sanity_tidy(est, est_custom, estimate, statistic, class(model)[1])
-  # if (!is.null(est_custom)) {
-  #   for (n in colnames(est_custom)) {
-  #     est[[n]] <- est_custom[[n]]
-  #   }
-  # }
+  # tidy_custom
+  est_custom <- tidy_custom(model)
+  sanity_tidy(est, est_custom, estimate, statistic, class(model)[1])
+  if (!is.null(est_custom)) {
+    for (n in colnames(est_custom)) {
+      est[[n]] <- est_custom[[n]]
+    }
+  }
 
   # group coefficients
   if (anyDuplicated(est$term) > 0) {

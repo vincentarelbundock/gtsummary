@@ -2,3 +2,5 @@ R/convenience.R
 R/datasummary_functions.R
 R/sanity_checks.R
 R/gof_map.R
+R/bind.R
+R/glance_custom.R # lfe no longer on CRAN

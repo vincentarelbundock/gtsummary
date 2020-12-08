@@ -12,4 +12,3 @@ tidy_custom <- function(x) {
 #' @inherit tidy_custom
 #' @export
 tidy_custom.default <- function(x) NULL
-

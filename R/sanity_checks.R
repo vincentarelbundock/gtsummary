@@ -249,31 +249,6 @@ sanity_tidy <- function(tidy_output, tidy_custom, estimate, statistic, modelclas
     checkmate::assert_true('term' %in% colnames(tidy_custom))
     checkmate::assert_true(all(tidy_output$term == tidy_custom$term))
   }
-
-  # columns
-  available <- c(colnames(tidy_output), colnames(tidy_custom))
-
-  if (!estimate %in% available) {
-    msg <- paste0('For models of class ',
-      modelclass,
-      ' the `estimate` argument of the `modelsummary()` function must be one of: ',
-      paste(available, collapse = ', '))
-    stop(msg)
-  }
-
-  statistic[statistic == 'conf.int'] <- 'conf.low'
-  if (!all(statistic %in% available)) {
-    if ('conf.low' %in% available) {
-      available <- base::setdiff(available, c('conf.low', 'conf.high'))
-      available <- c('conf.int', available)
-    }
-    msg <- paste0('For models of class ',
-      modelclass,
-      ' the `statistic` argument of the `modelsummary()` function must be one of: ',
-      paste(available, collapse = ', '),
-      ' (or possibly conf.int)')
-    stop(msg)
-  }
 }
 
 #' sanity check: datasummary
