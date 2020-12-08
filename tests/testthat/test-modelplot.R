@@ -1,18 +1,24 @@
-library(vdiffr)
 library(ggplot2)
 library(sandwich)
 
 context("modelplot")
 
+# CRAN requires vdiffr to be conditional
+# Function recommended by Lionel Henry on 2020-12-08
+expect_doppelganger <- function(title, fig, path = NULL, ...) {
+  testthat::skip_if_not_installed("vdiffr")
+  vdiffr::expect_doppelganger(title, fig, path = path, ...)
+}
+
 test_that("single model", {
 
   mod <- lm(hp ~ mpg + drat, data = mtcars)
   p <- modelplot(mod)
-  vdiffr::expect_doppelganger("vanilla", p)
+  expect_doppelganger("vanilla", p)
 
   mod <- lm(hp ~ mpg + drat, data = mtcars)
   p <- modelplot(mod, coef_omit = 'Interc')
-  vdiffr::expect_doppelganger("coef_omit", p)
+  expect_doppelganger("coef_omit", p)
 
   params <- list(
     geom_vline(xintercept = 0, color = 'orange'),
@@ -23,7 +29,7 @@ test_that("single model", {
   p <- modelplot(mod,
     coef_map = c("drat" = "Rear axle ratio", "mpg" = "Miles / gallon"),
     color = "green", shape = "square", background = params)
-  vdiffr::expect_doppelganger("coef_map + color + shape + background", p)
+  expect_doppelganger("coef_map + color + shape + background", p)
 
 })
 
@@ -32,12 +38,12 @@ test_that("multiple models", {
   mod <- list(lm(hp ~ mpg + drat, data = mtcars),
     lm(hp ~ mpg, data = mtcars))
   p <- modelplot(mod)
-  vdiffr::expect_doppelganger("multiple plots vanilla", p)
+  expect_doppelganger("multiple plots vanilla", p)
 
   mod <- list(lm(hp ~ mpg + drat, data = mtcars),
     lm(hp ~ mpg, data = mtcars))
   p <- modelplot(mod, facet = TRUE)
-  vdiffr::expect_doppelganger("multiple plots facet", p)
+  expect_doppelganger("multiple plots facet", p)
 
 })
 
