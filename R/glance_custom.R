@@ -35,16 +35,16 @@ glance_custom.fixest <- function(x) {
   return(out)
 }
 
-#' @inherit glance_custom
-#' @keywords internal
-#' @export
-glance_custom.felm <- function(x) {
-	out <- tibble::tibble(.rows = 1)
-	for (n in names(x$fe)) {
-		out[[paste('FE: ', n)]] <- 'X'
-	}
-	if (!is.null(names(x$clustervar))) {
-		out[['Cluster vars']] <- paste(names(x$clustervar), collapse = ' + ')
-	}
-	return(out)
-}
+##' @inherit glance_custom
+##' @keywords internal
+##' @export
+#glance_custom.felm <- function(x) {
+#	out <- tibble::tibble(.rows = 1)
+#	for (n in names(x$fe)) {
+#		out[[paste('FE: ', n)]] <- 'X'
+#	}
+#	if (!is.null(names(x$clustervar))) {
+#		out[['Cluster vars']] <- paste(names(x$clustervar), collapse = ' + ')
+#	}
+#	return(out)
+#}
