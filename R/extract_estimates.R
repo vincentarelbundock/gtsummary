@@ -99,13 +99,20 @@ extract_estimates <- function(
   if (anyDuplicated(est$term) > 0) {
     # broom.mixed `group` column
     if ("group" %in% colnames(est)) {
-      est$term <- ifelse(is.na(est$group), est$term, paste(est$group, est$term))
+      est$term <- ifelse(is.na(est$group), 
+                         est$term, 
+                         paste0(est$group, " | ", est$term))
     }
     # nnet::multinom `y.level` column
     if ("y.level" %in% colnames(est)) {
-      est$term <- ifelse(is.na(est$y.level), est$term, paste(est$y.level, est$term))
+      est$term <- ifelse(is.na(est$y.level), 
+                         est$term, 
+                         paste0(est$y.level, " | ", est$term))
     }
   }
+
+  # term must be a character (not rounded with decimals when integer)
+  est$term <- as.character(est$term)
 
   # round everything
   for (n in colnames(est)) {

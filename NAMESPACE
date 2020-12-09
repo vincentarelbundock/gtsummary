@@ -2,7 +2,6 @@
 
 S3method(glance,modelsummary_list)
 S3method(glance_custom,default)
-S3method(glance_custom,felm)
 S3method(glance_custom,fixest)
 S3method(tidy,modelsummary_list)
 S3method(tidy_custom,default)
