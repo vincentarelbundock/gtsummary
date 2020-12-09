@@ -15,23 +15,9 @@ extract_statistic_override <- function(model, statistic_override, conf_level=NUL
   #   checkmate::check_atomic_vector(statistic_override, names="named"),
   #   combine = "or")
 
-  # lmtest::coeftest
   if (is.function(statistic_override) || is.matrix(statistic_override)) {
-    out <- try(lmtest::coeftest(model, statistic_override), silent=TRUE)
-
-    # if coeftest works, use tidy and return data.frame
-    if (!inherits(out, "try-error")) {
-      if (!is.null(conf_level)) {
-        out <- generics::tidy(out, conf.int=TRUE, conf.level=conf_level)
-      } else {
-        out <- generics::tidy(out)
-      }
-    }
-    
-    if (inherits(out, "data.frame")) {
-      return(out)
-    }
-
+    out <- get_coeftest(model, statistic_override, conf_level)
+    if (inherits(out, "data.frame")) return(out)
   }
 
   # function is expected to return a matrix
@@ -65,3 +51,34 @@ extract_statistic_override <- function(model, statistic_override, conf_level=NUL
   stop("Could not retrieve a valid variance-covariance matrix using the function supplied in `statistic_override`.")
 
 }
+
+
+get_coeftest <- function(model, statistic_override, conf_level) {
+
+  if (!check_dependency("lmtest")) return(NULL)
+
+  gof <- try(
+    lmtest::coeftest(model, statistic_override), silent=TRUE)
+
+  gof_ci <- try(
+    lmtest::coefci(model, statististic_override, level=conf_level), silent=TRUE)
+
+  if (inherits(gof, "data.frame")) {
+    gof <- as.data.frame(unclass(gof))
+    colnames(gof) <- c("estimate", "std.error", "statistic", "p.value")
+    gof$term <- row.names(gof)
+
+    if (inherits(gof_ci, "data.frame")) {
+      gof_ci <- as.data.frame(unclass(gof))
+      colnames(gof_ci) <- c("conf.low", "conf.high")
+      gof_ci$term <- row.names(gof_ci)
+      gof <- merge(gof, gof_ci, by="term")
+    }
+
+    row.names(gof) <- NULL
+
+  } else {
+    return(NULL)
+  }
+}
+

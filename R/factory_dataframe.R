@@ -30,6 +30,8 @@ factory_dataframe <- function(tab,
   attr(out, 'output_format') <- output_format
   attr(out, 'title') <- title
 
+  row.names(out) <- NULL
+
   return(out)
 
 }

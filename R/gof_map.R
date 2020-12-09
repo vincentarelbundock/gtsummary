@@ -13,6 +13,8 @@ gof_map_build <- function() {
   r2.adjusted,               R2 Adj.,            3, FALSE,
   r2.marginal,               R2 Marg.,           3, FALSE,
   r2.conditional,            R2 Cond.,           3, FALSE,
+  r2.within,                 R2 Within,          3, FALSE,
+  r2.within.adjusted,        R2 Within Adj.,     3, FALSE,
   pseudo.r.squared,          R2 Pseudo,          3, FALSE,
   within.r.squared,          R2 Within,          3, FALSE,
   r.squared.within,          R2 Within,          3, FALSE,
