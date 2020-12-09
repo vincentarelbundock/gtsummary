@@ -49,21 +49,11 @@ extract_estimates <- function(
   
   # extract estimates using broom or parameters
   if (any(grepl("conf", estimate_glue))) {
-    est <- suppressWarnings(try(tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
-    if (!inherits(est, "data.frame") || nrow(est) == 0) {
-      est <- suppressWarnings(try(tidy_easystats(model, ci=conf_level, ...), silent=TRUE))
-    }
+    est <- get_estimates(model, conf_level=conf_level)
   } else {
-    est <- suppressWarnings(try(tidy(model, ...), silent=TRUE))
-    if (!inherits(est, "data.frame") || nrow(est) == 0) {
-      est <- suppressWarnings(try(tidy_easystats(model, ...), silent=TRUE))
-    }
-  } 
-
-  if (!inherits(est, "data.frame") || nrow(est) == 0 | !"term" %in% colnames(est)) {
-    stop(sprintf('Cannot extract the required information from models of class "%s". Consider installing and loading `broom.mixed`, or any other package that includes `tidy` and `glance` methods appropriate for this model type. Alternatively, you can easily define your own methods by following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
+    est <- get_estimates(model, conf_level=NULL)
   }
-
+  
   # estimate override
   if (!is.null(statistic_override)) {
 
@@ -166,3 +156,46 @@ extract_estimates <- function(
   # output
   return(est)
 }
+
+get_estimates <- function(model, conf_level=NULL, ...) {
+
+  if (is.null(conf_level)) {
+    conf_int=FALSE
+  } else {
+    conf_int=TRUE
+  }
+
+  flag <- function(x) {
+    inherits(x, "data.frame") &&
+    nrow(x) > 0 &&
+    "term" %in% colnames(x)
+  }
+
+  # tidy method in the environment takes precedence over everything
+  est <- suppressWarnings(try(
+    generics::tidy(model, conf.int=conf_int, conf.level=conf_level, ...), silent=TRUE))
+  if (flag(est)) return(est)
+
+  # easystats/parameters: unless broom is loaded manually, this is the default method
+  est <- suppressWarnings(try(
+    tidy_easystats(model, ci=conf_level, ...), silent=TRUE))
+  if (flag(est)) return(est)
+
+  # if broom is installed locally, try it
+  if (check_dependency("broom")) {
+    est <- suppressWarnings(try(
+      broom::tidy(model, conf.int=conf_int, conf.level=conf_level, ...), silent=TRUE))
+  }
+  if (flag(est)) return(est)
+
+  # if broom.mixed is installed locally, try it
+  if (check_dependency("broom.mixed")) {
+    est <- suppressWarnings(try(
+      broom.mixed::tidy(model, conf.int=TRUE, conf.level=conf_level, ...), silent=TRUE))
+  }
+  if (flag(est)) return(est)
+
+  stop(sprintf('Cannot extract the required information from models of class "%s". Consider installing and loading `broom.mixed`, or any other package that includes `tidy` and `glance` methods appropriate for this model type. Alternatively, you can easily define your own methods by following the instructions on the `modelsummary` website: https://vincentarelbundock.github.io/modelsummary/articles/newmodels.html', class(model)[1]))
+
+}
+ 

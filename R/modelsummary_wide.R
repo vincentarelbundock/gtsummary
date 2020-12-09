@@ -50,14 +50,14 @@ modelsummary_wide <- function(models,
   # tidy
   if (statistic == "conf.int") {
     ti <- lapply(models, function(x) 
-                 generics::tidy(x, conf.int=TRUE, conf.level=conf_level, ...))
+                 get_estimates(x, conf.level=conf_level, ...))
   } else {
     ti <- lapply(models, function(x) 
-                 generics::tidy(x, ...))
+                 get_estimates(x, ...))
   }
 
   # glance
-  gl <- lapply(models, generics::glance)
+  gl <- lapply(models, get_gof)
 
   # combine
   if (length(models) > 1) {

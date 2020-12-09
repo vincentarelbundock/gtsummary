@@ -9,7 +9,12 @@ extract_statistic_override(model, statistic_override, conf_level = NULL)
 \arguments{
 \item{model}{object type with an available `tidy` method.}
 
-\item{statistic_override}{deprecated argument. Use the `statistic_override` argument instead.}
+\item{statistic_override}{manually override statistics. Accepts three types of input:
+\itemize{
+  \item a function or list of functions of length(models) which produce variance-covariance matrices with row and column names equal to the names of your coefficient estimates. For example, `R` supplies the `vcov` function, and the `sandwich` package supplies `vcovHC`, `vcovHAC`, etc. If the `lmtest` package is installed, `modelsummary` will try to use it to override: "std.error", "statistic", "p.value", "conf.int". If the `lmtest` package is not installed, `modelsummary` will override "std.error" by using the square root of the vcov matrix diagonal.
+  \item a list of length(models) variance-covariance matrices with row and column names equal to the names of your coefficient estimates.
+  \item a list of length(models) vectors with names equal to the names of your coefficient estimates. Numeric vectors are formatted according to `fmt` and placed in brackets, character vectors printed as given.
+}}
 
 \item{conf_level}{confidence level to use for confidence intervals}
 }

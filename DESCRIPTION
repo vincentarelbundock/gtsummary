@@ -19,7 +19,6 @@ BugReports: https://github.com/vincentarelbundock/modelsummary/issues/
 Depends:
     R (>= 3.4.0)
 Imports:
-    broom,
     checkmate,
     generics,
     glue,
@@ -28,6 +27,7 @@ Imports:
     performance,
     tables
 Suggests: 
+    broom,
     broom.mixed,
     estimatr,
     fixest,

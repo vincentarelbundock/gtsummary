@@ -38,7 +38,8 @@ extract_models <- function(...) {
 #' \itemize{
 #'   \item Typical values: "conf.int", "std.error", "statistic", "p.value", "conf.low", "conf.high".
 #'   \item Alternative values: any column name produced by `broom::tidy(model)`
-#'   \item `glue` package strings with braces: "{estimate} [{conf.low}, {conf.high}]"
+#'   \item `glue` package strings with braces such as: 
+#'   \item "\{estimate\} [\{conf.low\}, \{conf.high\}]"
 #' }
 #' @param statistic_override manually override statistics. Accepts three types of input:
 #' \itemize{
@@ -79,11 +80,9 @@ extract_models <- function(...) {
 #' @param ... all other arguments are passed to the `tidy` and `glance` methods
 #' used to extract estimates from the model. For example, this allows users to
 #' set `exponentiate=TRUE` to exponentiate logistic regression coefficients.
-#' @param statistic deprecated argument. Use the `estimate` argument instead.
-#' @param statistic_override deprecated argument. Use the `statistic_override` argument instead.
 #' @param statistic_vertical deprecated argument. Supply a vector of strings or `glue` strings to the `estimate` instead.
 #' @return a regression table in a format determined by the `output` argument.
-#' @importFrom broom glance tidy
+#' @importFrom generics glance tidy
 #' @examples
 #' \dontrun{
 #'
