@@ -84,8 +84,8 @@ modelplot <- function(models,
     coef_omit=coef_omit,
     coef_rename=coef_rename,
     gof_omit=".*",
-    statistic_override=statistic_override#,
-    # ...
+    statistic_override=statistic_override,
+    ...
   )
   out$part <- out$statistic <- NULL
 
