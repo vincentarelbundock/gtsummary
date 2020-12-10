@@ -68,16 +68,20 @@ get_coeftest <- function(model, statistic_override, conf_level) {
     gof <- as.data.frame(unclass(gof))
     colnames(gof) <- c("estimate", "std.error", "statistic", "p.value")
     gof$term <- row.names(gof)
-    if (inherits(gof_ci, "data.frame")) {
-      gof_ci <- as.data.frame(unclass(gof))
-      colnames(gof_ci) <- c("conf.low", "conf.high")
-      gof_ci$term <- row.names(gof_ci)
-      gof <- merge(gof, gof_ci, by="term")
-    }
-  row.names(gof) <- NULL
-  return(gof)
   }
 
-  return(NULL)
+  if (!inherits(gof_ci, "try-error") &&
+      !inherits(gof, "try-error")) {
+    gof_ci <- as.data.frame(unclass(gof_ci))
+    colnames(gof_ci) <- c("conf.low", "conf.high")
+    gof_ci$term <- row.names(gof_ci)
+    gof <- merge(gof, gof_ci, by="term")
+  }
+
+  if (inherits(gof, "try-error")) {
+    gof <- NULL
+  }
+
+  return(gof)
 }
 
