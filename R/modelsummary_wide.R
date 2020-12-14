@@ -50,7 +50,7 @@ modelsummary_wide <- function(models,
   # tidy
   if (statistic == "conf.int") {
     ti <- lapply(models, function(x) 
-                 get_estimates(x, conf.level=conf_level, ...))
+                 get_estimates(x, conf_level=conf_level, ...))
   } else {
     ti <- lapply(models, function(x) 
                  get_estimates(x, ...))
