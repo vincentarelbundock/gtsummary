@@ -19,6 +19,7 @@ modelsummary_wide(
   gof_map = NULL,
   gof_omit = NULL,
   add_rows = NULL,
+  stacking = "horizontal",
   title = NULL,
   notes = NULL,
   estimate = "estimate",

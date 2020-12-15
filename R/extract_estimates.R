@@ -157,6 +157,8 @@ extract_estimates <- function(
   return(est)
 }
 
+#' @inheritParams modelsummary
+#' @export
 get_estimates <- function(model, conf_level=NULL, ...) {
 
   if (is.null(conf_level)) {

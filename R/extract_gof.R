@@ -96,6 +96,9 @@ extract_gof <- function(model, fmt, gof_map, ...) {
   return(out)
 }
 
+
+#' @inheritParams modelsummary
+#' @export
 get_gof <- function(model, ...) {
 
   flag <- function(x) {
