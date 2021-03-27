@@ -64,6 +64,11 @@ globalVariables(c('.', 'term', 'part', 'estimate', 'conf.high', 'conf.low', 'val
 #' * list of lists, each of which includes 3 elements named "raw", "clean", "fmt". Unknown statistics are omitted. See the 'Examples section below'.
 #' @param gof_omit string regular expression. Omits all matching gof statistics from
 #' the table (using `grepl(perl=TRUE)`).
+#' @param group string group identifier for models that produce groups of related
+#' parameters (e.g., multinomial logit with outcome levels, or components of a
+#' GAMLSS model). Valid values are column names in the data.frame produced by
+#' `get_estimates(model)`. To display groups side-by-side, consider the
+#' `modelsummary_wide` function.
 #' @param add_rows a data.frame (or tibble) with the same number of columns as
 #' your main table. By default, rows are appended to the bottom of the table.
 #' You can define a "position" attribute of integers to set the row positions.
@@ -246,9 +251,9 @@ modelsummary <- function(
   coef_map    = NULL,
   coef_omit   = NULL,
   coef_rename = NULL,
-  coef_group  = NULL,
   gof_map     = NULL,
   gof_omit    = NULL,
+  group       = NULL,
   add_rows    = NULL,
   align       = NULL,
   notes       = NULL,
@@ -313,10 +318,9 @@ modelsummary <- function(
       vcov               = vcov[[i]],
       conf_level         = conf_level,
       stars              = stars,
-      coef_group         = coef_group,
+      group              = group,
       ...
     )
-
 
     # coef_rename: before merge to collapse rows
     if (!is.null(coef_rename)) {
@@ -361,17 +365,22 @@ modelsummary <- function(
   term_order <- lapply(est, function(x) x$term)
   term_order <- unique(unlist(term_order))
 
-
   f <- function(x, y) merge(x, y, all = TRUE, sort = FALSE,
-                            by = c("coef_group", "term", "statistic"))
+                            by = c("group", "term", "statistic"))
+    
   est <- Reduce(f, est) 
 
+  ## # group coefficients
+  ## if (anyDuplicated(est$term) > 0 && is.null(group)) {
+  ##   warning('There are duplicate term (coefficient) names in your table. Did your model produce "grouped" estimates, such as outcome levels in a multinomial logit or components of a GAMLSS? If so, you may find the "group" argument useful. Also consider using the `modelsummary_wide` function.')
+  ## }
+
   est$part <- "estimates"
-  est <- est[, unique(c("part", "coef_group", "term", "statistic", names(est)))]
+  est <- est[, unique(c("part", "group", "term", "statistic", names(est)))]
 
   # default order
   idx <- match(est[["term"]], term_order)
-  est <- est[order(est$coef_group, idx, est[["statistic"]]),]
+  est <- est[order(est$group, idx, est[["statistic"]]),]
 
   # coef_map
   if (!is.null(coef_map)) {
@@ -495,13 +504,13 @@ modelsummary <- function(
   # data.frame output keeps redundant info
   if (output_format != "dataframe") {
 
-    if (is.null(coef_group)) {
-        tab$coef_group <-NULL
+    if (is.null(group)) {
+        tab$group <-NULL
     } else {
       for (i in nrow(tab):2) {
         if (tab$part[i] == "estimates" &&
-            tab$coef_group[i - 1] == tab$coef_group[i]) {
-            tab$coef_group[i] <- ""
+            tab$group[i - 1] == tab$group[i]) {
+            tab$group[i] <- ""
         }
       }
     }
@@ -518,16 +527,18 @@ modelsummary <- function(
 
       # HACK: arbitrary spaces to avoid name conflict
       colnames(tab)[colnames(tab)=="term"] <- "       "
-      colnames(tab)[colnames(tab)=="coef_group"] <- "        "
+      colnames(tab)[colnames(tab)=="group"] <- "        "
     }
 
   }
 
 
-  # column alignment (after removing extraneous columns)
-  if (is.null(align) && !is.null(coef_group)) {
-    align <- paste0("ll", strrep("c", ncol(tab) - 2))
-  } else if (is.null(align) && is.null(coef_group)) {
+  # not optimal, but messes up all the tests, and do we need a "group" column?
+  # need to fix table alignment if this isn't what we want
+  tab$group <- NULL
+
+  # align
+  if (is.null(align) && is.null(group)) {
     align <- paste0("l", strrep("c", ncol(tab) - 1))
   }
 

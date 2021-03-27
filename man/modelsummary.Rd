@@ -18,6 +18,7 @@ modelsummary(
   coef_rename = NULL,
   gof_map = NULL,
   gof_omit = NULL,
+  group = NULL,
   add_rows = NULL,
   align = NULL,
   notes = NULL,
@@ -110,6 +111,12 @@ in the model object, e.g. c("hp:mpg"="hp X mpg") for an interaction term.}
 
 \item{gof_omit}{string regular expression. Omits all matching gof statistics from
 the table (using \code{grepl(perl=TRUE)}).}
+
+\item{group}{string group identifier for models that produce groups of related
+parameters (e.g., multinomial logit with outcome levels, or components of a
+GAMLSS model). Valid values are column names in the data.frame produced by
+\code{get_estimates(model)}. To display groups side-by-side, consider the
+\code{modelsummary_wide} function.}
 
 \item{add_rows}{a data.frame (or tibble) with the same number of columns as
 your main table. By default, rows are appended to the bottom of the table.
