@@ -12,6 +12,7 @@ format_estimates <- function(
   conf_level = .95,
   fmt        = "%.3f",
   stars      = FALSE,
+  coef_group = NULL,
   ...) {
 
   # conf.int to glue
@@ -159,8 +160,17 @@ format_estimates <- function(
   }
 
 
+  if (!is.null(coef_group)) {
+      est[["coef_group"]] <- est[[coef_group]]
+  } else {
+      est[["coef_group"]] <- NA_character_
+  }
+        
+
   # subset columns
-  cols <- c('term', paste0('modelsummary_tmp', seq_along(estimate_glue)))
+  cols <- c('coef_group', 'term',
+            paste0('modelsummary_tmp', seq_along(estimate_glue)))
+  cols <- intersect(cols, colnames(est))
   est <- est[, cols, drop = FALSE]
 
   # reshape to vertical

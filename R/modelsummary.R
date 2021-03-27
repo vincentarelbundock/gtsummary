@@ -246,6 +246,7 @@ modelsummary <- function(
   coef_map    = NULL,
   coef_omit   = NULL,
   coef_rename = NULL,
+  coef_group  = NULL,
   gof_map     = NULL,
   gof_omit    = NULL,
   add_rows    = NULL,
@@ -312,6 +313,7 @@ modelsummary <- function(
       vcov               = vcov[[i]],
       conf_level         = conf_level,
       stars              = stars,
+      coef_group         = coef_group,
       ...
     )
 
@@ -349,25 +351,27 @@ modelsummary <- function(
     }
 
     # model name is temporarily a unique id
-    colnames(tmp)[3] <- model_id[i]
+    colnames(tmp)[4] <- model_id[i]
 
     # assign
     est[[model_id[i]]] <- tmp
 
   }
 
-
   term_order <- lapply(est, function(x) x$term)
   term_order <- unique(unlist(term_order))
 
-  f <- function(x, y) merge(x, y, all=TRUE, sort=FALSE, by=c("term", "statistic"))
+
+  f <- function(x, y) merge(x, y, all = TRUE, sort = FALSE,
+                            by = c("coef_group", "term", "statistic"))
   est <- Reduce(f, est) 
+
   est$part <- "estimates"
-  est <- est[, unique(c("part", "term", "statistic", names(est)))]
+  est <- est[, unique(c("part", "coef_group", "term", "statistic", names(est)))]
 
   # default order
   idx <- match(est[["term"]], term_order)
-  est <- est[order(idx, est[["statistic"]]),]
+  est <- est[order(est$coef_group, idx, est[["statistic"]]),]
 
   # coef_map
   if (!is.null(coef_map)) {
@@ -376,6 +380,7 @@ modelsummary <- function(
     idx <- match(est[["term"]], coef_map)
     est <- est[order(idx, est[["statistic"]]),]
   }
+
 
   # vcov_type: at least two distinct strings or formulas
   vcov_type_flag <- !all(sapply(vcov, is.null))
@@ -490,6 +495,18 @@ modelsummary <- function(
   # data.frame output keeps redundant info
   if (output_format != "dataframe") {
 
+    if (is.null(coef_group)) {
+        tab$coef_group <-NULL
+    } else {
+      for (i in nrow(tab):2) {
+        if (tab$part[i] == "estimates" &&
+            tab$coef_group[i - 1] == tab$coef_group[i]) {
+            tab$coef_group[i] <- ""
+        }
+      }
+    }
+              
+
     # duplicate term labels
     idx <- grepl("modelsummary_tmp\\d+$", tab$statistic) &
            tab$statistic != "modelsummary_tmp1"
@@ -499,20 +516,26 @@ modelsummary <- function(
     if (output_format != "dataframe") {
       tab$statistic <- tab$part <- NULL
 
-      # HACK: arbitrary 7 spaces to avoid name conflict
+      # HACK: arbitrary spaces to avoid name conflict
       colnames(tab)[colnames(tab)=="term"] <- "       "
+      colnames(tab)[colnames(tab)=="coef_group"] <- "        "
     }
 
   }
 
+
   # column alignment (after removing extraneous columns)
-  if (is.null(align)) {
+  if (is.null(align) && !is.null(coef_group)) {
+    align <- paste0("ll", strrep("c", ncol(tab) - 2))
+  } else if (is.null(align) && is.null(coef_group)) {
     align <- paste0("l", strrep("c", ncol(tab) - 1))
   }
+
 
   # restore original model names
   idx <- match(model_id, colnames(tab))
   colnames(tab)[idx] <- model_names
+    
 
   # build table
   factory(
