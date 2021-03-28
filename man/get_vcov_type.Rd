@@ -4,7 +4,7 @@
 \alias{get_vcov_type}
 \title{internal function}
 \usage{
-get_vcov_type(v)
+get_vcov_type(vcov)
 }
 \arguments{
 \item{v}{a string or formula describing the standard error type}

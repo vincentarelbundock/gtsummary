@@ -4,7 +4,7 @@
 #' @inheritParams modelsummary
 #' @param model a single model object
 #' @export
-get_estimates <- function(model, conf_level=.95, ...) {
+get_estimates <- function(model, conf_level = .95, ...) {
 
     if (is.null(conf_level)) {
         conf_int = FALSE

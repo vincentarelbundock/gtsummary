@@ -263,15 +263,10 @@ modelsummary <- function(
 
   # sanitation
   sanity_ellipsis(vcov, ...)        # before sanitize_vcov
-
   models <- sanitize_models(models) # before sanitize_vcov
-
   vcov <- sanitize_vcov(vcov, length(models), ...)
-
   number_of_models <- max(length(models), length(vcov))
-
   estimate <- sanitize_estimate(estimate, number_of_models)
-
   sanity_output(output)
   sanity_statistic(statistic)
   sanity_conf_level(conf_level)
@@ -303,107 +298,64 @@ modelsummary <- function(
     j <- ifelse(length(models) == 1, 1, i)
 
     # extract estimates using broom or parameters
-    if (any(grepl("conf", c(estimate, statistic)))) {
-        tmp <- get_estimates(models[[j]], conf_level = conf_level, ...)
-    } else {
-        tmp <- get_estimates(models[[j]], conf_level = NULL, ...)
+    if (!any(grepl("conf", c(estimate, statistic)))) {
+      conf_level <- NULL
     }
 
+    tmp <- get_estimates(models[[j]], conf_level = conf_level, ...)
+
     tmp <- format_estimates(
-      est = tmp,
-      model              = models[[j]],
-      fmt                = fmt,
-      estimate           = estimate[[i]],
-      statistic          = statistic,
-      vcov               = vcov[[i]],
-      conf_level         = conf_level,
-      stars              = stars,
-      group              = group,
+      est        = tmp,
+      model      = models[[j]],
+      fmt        = fmt,
+      estimate   = estimate[[i]],
+      statistic  = statistic,
+      vcov       = vcov[[i]],
+      conf_level = conf_level,
+      stars      = stars,
+      group      = group,
       ...
     )
 
-    # coef_rename: before merge to collapse rows
-    if (!is.null(coef_rename)) {
-      if (is.character(coef_rename)) {
-        dict <- coef_rename
-      } else if (is.function(coef_rename)) {
-        dict <- stats::setNames(coef_rename(tmp$term), tmp$term)
-      }
-      tmp$term <- replace_dict(tmp$term, dict)
-    }
-
-    # coef_map
-    if (!is.null(coef_map)) {
-      if (is.null(names(coef_map))) {
-        coef_map <- stats::setNames(coef_map, coef_map)
-      }
-      tmp <- tmp[tmp$term %in% names(coef_map), , drop=FALSE]
-      tmp$term <- replace_dict(tmp$term, coef_map)
-    }
-
-    # coef_omit
-    if (!is.null(coef_omit)) {
-      idx <- !grepl(coef_omit, tmp$term, perl=TRUE)
-      tmp <- tmp[idx, , drop=FALSE]
-    }
-
-    # make sure no duplicate estimate names *within* a single model. this
-    # cannot be in input sanity checks. idx paste allows multiple statistics.
-    idx <- paste(tmp$term, tmp$statistic)
-    if (anyDuplicated(idx) > 2) {
-      stop('Two coefficients from a single model cannot share the same name. Check model ', i)
-    }
+    # rename and subset before merging to collapse rows
+    tmp <- map_omit_rename_estimates(
+      tmp,
+      coef_rename = coef_rename,
+      coef_map = coef_map,
+      coef_omit = coef_omit)
 
     # model name is temporarily a unique id
     colnames(tmp)[4] <- model_id[i]
 
-    # assign
+    # assign to estimate list
     est[[model_id[i]]] <- tmp
 
   }
 
-  term_order <- lapply(est, function(x) x$term)
-  term_order <- unique(unlist(term_order))
+  # order: store for later
+  if (is.null(coef_map)) {
+    term_order <- lapply(est, function(x) x$term)
+    term_order <- unique(unlist(term_order))
+  } else {
+    term_order <- unique(coef_map)
+  }
 
-  f <- function(x, y) merge(x, y, all = TRUE, sort = FALSE,
-                            by = c("group", "term", "statistic"))
-    
+  # merge models
+  f <- function(x, y) {
+    merge(x, y, all = TRUE, sort = FALSE, by = c("group", "term", "statistic"))
+  }
   est <- Reduce(f, est) 
 
-  ## # group coefficients
-  ## if (anyDuplicated(est$term) > 0 && is.null(group)) {
-  ##   warning('There are duplicate term (coefficient) names in your table. Did your model produce "grouped" estimates, such as outcome levels in a multinomial logit or components of a GAMLSS? If so, you may find the "group" argument useful. Also consider using the `modelsummary_wide` function.')
-  ## }
-
+  # re-order columns
   est$part <- "estimates"
   est <- est[, unique(c("part", "group", "term", "statistic", names(est)))]
 
-  # default order
+  # re-order rows
   idx <- match(est[["term"]], term_order)
-  est <- est[order(est$group, idx, est[["statistic"]]),]
-
-  # coef_map
-  if (!is.null(coef_map)) {
-    coef_map <- intersect(coef_map, term_order)
-    est <- est[est[["term"]] %in% coef_map, , drop=FALSE]
-    idx <- match(est[["term"]], coef_map)
-    est <- est[order(idx, est[["statistic"]]),]
-  }
-
+  est <- est[order(est$part, est$group, idx, est[["statistic"]]),]
 
   # vcov_type: at least two distinct strings or formulas
-  vcov_type_flag <- !all(sapply(vcov, is.null))
-  for (v in vcov) {
-    if (!checkmate::test_formula(v) &&
-        !checkmate::test_character(v, len = 1, null.ok = TRUE)) {
-       vcov_type_flag <- FALSE 
-    }
-  }
-  if (vcov_type_flag == TRUE) {
-    vcov_type <- sapply(vcov, get_vcov_type)
-  } else {
-    vcov_type <- NULL
-  }
+  vcov_type <- get_vcov_type(vcov) 
 
   # gof: extract and combine
   gof <- list()
@@ -423,43 +375,12 @@ modelsummary <- function(
     colnames(gof[[i]])[2] <- model_id[i]
   }
 
+  # merge
   f <- function(x, y) merge(x, y, all=TRUE, sort=FALSE, by="term")
   gof <- Reduce(f, gof)
 
-  if (nrow(gof) > 0) {
-
-    # gof row identifier
-    gof$part <- "gof"
-    gof <- gof[, unique(c("part", "term", names(gof)))]
-
-    # gof_omit
-    if (!is.null(gof_omit)) {
-      idx <- !grepl(gof_omit, gof$term, perl=TRUE)
-      gof <- gof[idx, , drop=FALSE]
-    }
-
-    # gof_map
-    if (nrow(gof) > 0) {
-      if (is.null(gof_map)) {
-        # assign here and not in the function definition because we use NULL to
-        # figure out if F-stat should be included by default for lm models.
-        gm_list <- get("gof_map", envir = loadNamespace("modelsummary"))
-        gm_list <- lapply(1:nrow(gm_list), function(i) gm_list[i, ])
-      } else if (inherits(gof_map, "data.frame")) {
-        gm_list <- lapply(1:nrow(gof_map), function(i) gof_map[i, ])
-      } else {
-        gm_list <- gof_map
-      }
-      gm_raw <- sapply(gm_list, function(x) x$raw)
-      gm_clean <- sapply(gm_list, function(x) x$clean)
-      gof_names <- gm_clean[match(gof$term, gm_raw)]
-      gof_names[is.na(gof_names)] <- gof$term[is.na(gof_names)]
-      gof$term <- gof_names
-      idx <- match(gof$term, gm_clean)
-      gof <- gof[order(idx, gof$term), ]
-    }
-
-  } 
+  # subset, rename, reorder
+  gof <- map_omit_gof(gof, gof_omit, gof_map)
 
   # combine estimates and gof
   if (nrow(gof) > 0) {
@@ -569,3 +490,91 @@ modelsummary <- function(
 #' @keywords internal
 #' @export
 msummary <- modelsummary
+
+
+
+#' rename and reorder estimates
+#'
+#' @keywords internal
+map_omit_rename_estimates <- function(estimates,
+                             coef_rename,
+                             coef_map,
+                             coef_omit) {
+                                 
+    # coef_rename
+    if (!is.null(coef_rename)) {
+        if (is.character(coef_rename)) {
+            dict <- coef_rename
+        } else if (is.function(coef_rename)) {
+            dict <- stats::setNames(coef_rename(estimates$term), estimates$term)
+        }
+        estimates$term <- replace_dict(estimates$term, dict)
+    }
+
+    # coef_map
+    if (!is.null(coef_map)) {
+        if (is.null(names(coef_map))) {
+            coef_map <- stats::setNames(coef_map, coef_map)
+        }
+        estimates <- estimates[estimates$term %in% names(coef_map), , drop=FALSE]
+        estimates$term <- replace_dict(estimates$term, coef_map)
+    }
+
+    # coef_omit
+    if (!is.null(coef_omit)) {
+        idx <- !grepl(coef_omit, estimates$term, perl=TRUE)
+        estimates <- estimates[idx, , drop=FALSE]
+    }
+
+    # make sure no duplicate estimate names *within* a single model. this
+    # cannot be in input sanity checks. idx paste allows multiple statistics.
+    idx <- paste(estimates$term, estimates$statistic)
+    if (anyDuplicated(idx) > 2) {
+      stop('Two coefficients from a single model cannot share the same name.')
+    }
+
+  return(estimates)
+}
+
+
+#' Internal function to subset, rename and re-order gof statistics
+#'
+#' @keywords internal
+map_omit_gof <- function(gof, gof_omit, gof_map) {
+
+  if (nrow(gof) == 0) {
+    return(gof)
+  }
+
+  # row identifier
+  gof$part <- "gof"
+  gof <- gof[, unique(c("part", "term", names(gof)))]
+
+  # omit
+  if (!is.null(gof_omit)) {
+    idx <- !grepl(gof_omit, gof$term, perl=TRUE)
+    gof <- gof[idx, , drop=FALSE]
+  }
+
+  # map
+  if (is.null(gof_map)) {
+    # assign here and not in the function definition because we use NULL to
+    # figure out if F-stat should be included by default for lm models.
+    gm_list <- get("gof_map", envir = loadNamespace("modelsummary"))
+    gm_list <- lapply(1:nrow(gm_list), function(i) gm_list[i, ])
+  } else if (inherits(gof_map, "data.frame")) {
+    gm_list <- lapply(1:nrow(gof_map), function(i) gof_map[i, ])
+  } else {
+    gm_list <- gof_map
+  }
+
+  gm_raw <- sapply(gm_list, function(x) x$raw)
+  gm_clean <- sapply(gm_list, function(x) x$clean)
+  gof_names <- gm_clean[match(gof$term, gm_raw)]
+  gof_names[is.na(gof_names)] <- gof$term[is.na(gof_names)]
+  gof$term <- gof_names
+  idx <- match(gof$term, gm_clean)
+  gof <- gof[order(idx, gof$term), ]
+
+  return(gof)
+}
