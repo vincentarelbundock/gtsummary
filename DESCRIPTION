@@ -27,6 +27,8 @@ BugReports: https://github.com/vincentarelbundock/modelsummary/issues/
 Depends:
     R (>= 3.5.0)
 Imports:
+    tidyr,
+    dplyr,
     broom,
     checkmate,
     generics,
@@ -35,7 +37,8 @@ Imports:
     kableExtra (>= 1.2.1),
     parameters,
     performance,
-    tables
+    tables,
+    magrittr
 Suggests: 
     broom.mixed,
     estimatr,

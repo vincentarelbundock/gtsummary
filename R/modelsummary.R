@@ -274,11 +274,22 @@ modelsummary <- function(
   sanity_gof_map(gof_map, gof_omit)
   sanity_stars(stars)
   sanity_fmt(fmt)
+  checkmate::assert_formula(group, null.ok = TRUE)
 
 
   # output
   output_format <- parse_output_arg(output)$output_format
 
+
+  # estimate groups
+  if (!is.null(group)) {
+    rhs <- all.vars(stats::update(group, "0~."))
+    lhs <- all.vars(stats::update(group, ".~0"))
+    group_name <- setdiff(c(lhs, rhs), c("term", "model"))
+  } else {
+    group_name <- NULL
+  }
+   
 
   # model names dictionary: use unique names for manipulation
   if (is.null(names(models))) {
@@ -313,7 +324,7 @@ modelsummary <- function(
       vcov       = vcov[[i]],
       conf_level = conf_level,
       stars      = stars,
-      group      = group,
+      group_name = group_name,
       ...
     )
 
@@ -354,6 +365,11 @@ modelsummary <- function(
   idx <- match(est[["term"]], term_order)
   est <- est[order(est$part, est$group, idx, est[["statistic"]]),]
 
+  # group reshape
+  if (!is.null(group)) {
+    est <- group_reshape(est, lhs, rhs)
+  }
+
   # vcov_type: at least two distinct strings or formulas
   vcov_type <- get_vcov_type(vcov) 
 
@@ -383,7 +399,7 @@ modelsummary <- function(
   gof <- map_omit_gof(gof, gof_omit, gof_map)
 
   # combine estimates and gof
-  if (nrow(gof) > 0) {
+  if (is.null(group) && nrow(gof)) {
     tab <- bind_rows(est, gof)
   } else {
     tab <- est
@@ -428,10 +444,20 @@ modelsummary <- function(
     if (is.null(group)) {
         tab$group <-NULL
     } else {
-      for (i in nrow(tab):2) {
-        if (tab$part[i] == "estimates" &&
-            tab$group[i - 1] == tab$group[i]) {
-            tab$group[i] <- ""
+      if ("group" %in% colnames(tab)) {
+        for (i in nrow(tab):2) {
+            if (tab$part[i] == "estimates" &&
+                tab$group[i - 1] == tab$group[i]) {
+                tab$group[i] <- ""
+            }
+        }
+      }
+      if ("model" %in% colnames(tab)) {
+        for (i in nrow(tab):2) {
+            if (tab$part[i] == "estimates" &&
+                tab$model[i - 1] == tab$model[i]) {
+                tab$model[i] <- ""
+            }
         }
       }
     }
@@ -465,9 +491,11 @@ modelsummary <- function(
 
 
   # restore original model names
-  idx <- match(model_id, colnames(tab))
-  colnames(tab)[idx] <- model_names
-    
+  if (is.null(group)) {
+    idx <- match(model_id, colnames(tab))
+    colnames(tab)[idx] <- model_names
+  }
+
 
   # build table
   factory(
@@ -484,13 +512,13 @@ modelsummary <- function(
 
 }
 
+
 #' `msummary()` is a shortcut to `modelsummary()`
 #'
 #' @inherit modelsummary
 #' @keywords internal
 #' @export
 msummary <- modelsummary
-
 
 
 #' rename and reorder estimates
@@ -577,4 +605,58 @@ map_omit_gof <- function(gof, gof_omit, gof_map) {
   gof <- gof[order(idx, gof$term), ]
 
   return(gof)
+}
+
+
+#' internal function to reshape grouped estimates
+#'
+#' @keywords internal
+#' @noRd
+group_reshape <- function(estimates, lhs, rhs) {
+
+    # term + model ~ group
+    if (all(c("term", "model") %in% lhs)) {
+        out <- estimates %>%
+            tidyr::pivot_longer(cols = 5:ncol(.),
+                                names_to = "model") %>%
+            tidyr::pivot_wider(names_from = "group",
+                               values_from = "value",
+                               values_fill = "") %>%
+            dplyr::arrange(model, term, statistic)
+
+    # group ~ term + model
+    } else if (all(c("term", "model") %in% rhs)) {
+        out <- estimates %>%
+            tidyr::pivot_longer(cols = 5:ncol(.),
+                                names_to = "model") %>%
+            dplyr::mutate(idx_col = paste(term, model)) %>%
+            dplyr::select(-model, -term) %>%
+            tidyr::pivot_wider(names_from = "idx_col",
+                               values_from = "value",
+                               values_fill = "") 
+
+    # term + group ~ model
+    } else if (length(lhs) == 2 &&
+               "model" %in% rhs &&
+               "term" %in% lhs) {
+        out <- estimates
+
+    } else {
+        stop("The formula supplied to the `group` argument is invalid.")
+    }
+                   
+    out[out == "NA"] <- ""
+    out[is.na(out)] <- ""
+
+    # empty columns
+    idx <- sapply(out, function(x) !all(x == ""))
+    out <- out[, idx, drop = FALSE]
+
+    # empty rows
+    idx <- setdiff(colnames(out), c("part", "term", "statistic", "model"))
+    tmp <- out[, idx, drop = FALSE]
+    idx <- apply(tmp, 1, function(x) !all(x == ""))
+    out <- out[idx,]
+    
+    return(out)
 }

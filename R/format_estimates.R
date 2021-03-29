@@ -12,7 +12,7 @@ format_estimates <- function(
   conf_level = .95,
   fmt        = "%.3f",
   stars      = FALSE,
-  group      = NULL,
+  group_name = NULL,
   ...) {
 
   # conf.int to glue
@@ -143,11 +143,11 @@ format_estimates <- function(
   }
 
 
-  if (!is.null(group) && group %in% colnames(est)) {
-    est[["group"]] <- est[[group]]
-  } else if (!is.null(group)) {
+  if (!is.null(group_name) && group_name %in% colnames(est)) {
+    est[["group"]] <- est[[group_name]]
+  } else if (!is.null(group_name)) {
     est[["group"]] <- ""
-    warning(sprintf('Group name "%s" was not found in the extracted data. The "group" argument must be a column name in the data.frame produced by `get_estimates(model)`', group))
+    warning(sprintf('Group name "%s" was not found in the extracted data. The "group" argument must be a column name in the data.frame produced by `get_estimates(model)`', group_name))
   } else {
     # cannot be NA because we need to merge
     est[["group"]] <- "" 
